@@ -40,3 +40,6 @@ copy.packages.between.libraries()
 # The final output should be: "Loading required package: NLP"
 install.packages("tm")
 library(tm)
+
+####### Install the tidyverse package for data analysis and visualization
+install.packages("tidyverse")

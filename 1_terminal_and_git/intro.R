@@ -1,5 +1,5 @@
 # IAP 2018
-# 15.S60 Software Tools for Operations Research
+# 15.S60 Computing in Optimization and Statistics
 # Lecture 1: Introduction to R
 
 # Script file intro.R
@@ -47,7 +47,8 @@ getwd()
   # if 54 will give you the answer you expect.
   
   # Other useful functions:
-  sqrt(2)
+
+sqrt(2)
 abs(-2)
 
 sin(pi/2)
@@ -87,174 +88,104 @@ print(y)
 # Use the ls() function to see what variables are available
 ls()
 
-########################################
-## VECTORS AND DATA FRAMES            ##
-########################################
+##############################
+## WORKING WITH DATA FRAMES ##
+##############################
 
-# Create vectors of airports and capacities
-airports = c("BOS", "JFK", "ORD", "SFO", "ATL")
-capacities = c(20, 45, 50, 35, 55)
+# Let's grab a data set. First, make sure that your working directory is set to the location of this script file. You can do this by choosing Session -> Set Working Directory -> Source File Location
 
-# Create a data frame
-df1 = data.frame(airports, capacities)
+# for the read_csv function
+library(tidyverse)
 
-# Add additional runways
-capacities = c(3, 2, 5, 1, 3)
+# Our data is from AirBnB 2016-2017 listings in Boston. We're going to read in the listings.csv data set, which contains basic information about each residence on offer. 
 
-# Create another data frame
-df2 = data.frame(airports, capacities)
+# read the data. It lives in the the `data` folder, which is one level up from the location of this script. 
 
-# Append rows of the second data frame to those of the first
-df.runways = rbind(df1, df2)
+data <- read_csv('../data/listings.csv')
 
-# Check out the class and structure of various variables
-class(airports)
-str(airports)
+# The environment now has a `data` object, and tells you how many rows (observations) and columns (variables) are contained in that object. 
 
-class(capacities)
-str(capacities)
+# Let's first take an interactive look at the data to see what kind of object we are dealing with.  
 
-class(df.runways)
-str(df.runways)
-# Notice that there are 5 different values for airports.  These 
-# fall under different "categories" or "factors"
+View(data)
 
-df.runways
+# So, we are dealing with a pretty standard "rectangular" data set.  How does R represent this object? 
 
-# Use data.frame$col to extract the column col from a data frame
-df.runways$airports
+class(data)
 
-# The summary function can often give you useful information 
-summary(df.runways)
-summary(df.runways$airports)
+# The base class is data.frame; tbl_df is a wrapper with a few convenient extra tricks. We'll refer to data frames from here on out, and not distinguish between the two. 
 
-# Use the subset function to extract rows of interest from 
-# a data frame (first argument is the data frame, second
-# argument is the criterion on which to select)
-runwaysBOS = subset(df.runways, airports=="BOS")
-runwaysBOS
+# What if we need to know how many rows and columns there are?
+nrow(data)
+ncol(data)
 
-# Alternatively, since we know that rows 1 and 6 correspond
-# to BOS, we can extract runwaysBOS from df.runways as follows:
-runwaysBOS = df.runways[c(1,6), ]
-
-str(runwaysBOS)
-# Notice that even though we used subset and runwaysBOS only
-# has one factor level for the airports column, the str function
-# still tells us that there are 5 levels.  We can fix this using the
-# factor function.
-
-runwaysBOS$airports = factor(runwaysBOS$airports)
-str(runwaysBOS)
-
-# Find the total runway capacity in Boston
-sum(runwaysBOS$capacities)
-
-############################
-## WORKING WITH CSV FILES ##
-############################
-
-# - Let's open the taxi data. It is found in
-#   /my/path/to/cos_2017/1_terminal_and_git/taxi_data.csv
-# - Let's find the path to that file on our own computer.
-# -- (Mac) /.../OR-software-tools-2016/data/2013-05-14.csv
-# -- (Windows) E:/.../OR-software-tools-2016/data/2013-05-14.csv
-#              where "E" is whichever drive we mounted athena using
-#              win-sshfs
-# Load csv files using read.csv
-# header = TRUE is usually ASSUMED, so not strictly necessary
-
-taxi_data = read.csv(file = "/my/path/to/cos_2017/1_terminal_and_git/taxi_data.csv", header = TRUE)
+# glimpse gives a more convenient summary of our data set and what's on it, including the data types of the columns: 
+glimpse(data)
 
 
-# Use names() to extract column names
-names(taxi_data)
+# Finally, you can just type in the name of your data into the console to get a view as well. Note that this may be hard to read if you have lots of columns. 
+data
 
-# Use str to look at details of columns
-str(taxi_data)
+# In R, basic data frames are LISTS of VECTORS. Get the individual vectors (columns) using the $ operator: 
 
-# Use head() to look at the first several rows
-head(taxi_data)
+data$host_response_time
+data$bedrooms
 
-# Use the $ command to look at specific columns
-taxi_data$vendor_id
-taxi_data$rate_code
+# Many operations in R are VECTORIZED; that is, you can apply a single expression to an entire vector at once, without using a loop. Try these:
 
+data$review_scores_rating / 100
 
+data$bathrooms + data$bedrooms
+
+data$property_type == "Apartment"
+
+# We'll introduce much more powerful tools for working with data frames in Session 2. 
 
 ####################################################
 ## BASIC STATISTICS, PLOTTING, AND SUMMARY TABLES ##
 ####################################################
 
-# Calculate the mean, standard deviation, and other statistics
-mean(taxi_data$passenger_count)
-sd(taxi_data$passenger_count)
-summary(taxi_data$passenger_count)
+# Basic summary statistics
+mean(data$bedrooms)
 
-# Plot fare amount vs trip distance
-plot(taxi_data$trip_distance, taxi_data$fare_amount)
+# woops! need to account for NA (missing values)
+
+mean(data$bedrooms, na.rm = TRUE)
+sd(data$bedrooms, na.rm = TRUE)
+
+# Get a statistical overview with summary()
+
+summary(data$bedrooms)
+
+# A convenient way to compute a proportion: 
+
+mean(data$property_type == "Apartment", na.rm = TRUE)
+
+# Basic Plotting
+# 
+# Relationship between bedrooms and bathrooms? 
+plot(data$bedrooms, data$bathrooms)
 
 # Plot with a title, x- and y-axis labels
-plot(taxi_data$trip_distance, taxi_data$fare_amount, main="Fare Amount vs. Trip Distance", xlab = "Trip Distance [mi]", ylab = "Fare Amount [$]")
-
-# For other plots and information about the graphics package
-library(help = "graphics")
-
-# Create a table to summarize the data
-# Here, we look at mean trip distance, based on the number
-# of passengers in the taxi
-tapply(taxi_data$trip_distance, taxi_data$passenger_count, mean)
+plot(data$bedrooms, data$bathrooms, main="Bathrooms vs. Bedrooms", xlab = "Number of Bedrooms", ylab = "Number of Bathrooms")
 
 # We can also create a table to look at counts 
-table(taxi_data$passenger_count, taxi_data$payment_type)
+table(data$bedrooms, data$bathrooms)
 
-
-###############################
-## DEALING WITH MISSING DATA ##
-###############################
-
-# Often in real datasets we encounter missing data.  For instance,
-# in a survey, not all respondents might answer all questions.  Here,
-# we will just remove any rows with any missing data (e.g., removing
-# respondents who did not answer all questions).  More sophisticated
-# methods for dealing with missing data exist, but we will not go
-# into detail here.
-
-# Load the a dataset with missing entries
-df_with_missing_entries <- data.frame(age=c(23,35,NA,42,53), 
-                                      name=c("Alice", "Bob", "Cindy", "Donald", "Elliot"))
-
-# Use the summary function to see how much missing data there is.
-summary(df_with_missing_entries)
-str(df_with_missing_entries)
-
-# Let's remove all of the rows where there is an entry missing. (The entry is NA)
-# First note that we cannot use '==' to check if an element is an NA
-5 == NA
-NA == NA
-
-# Instead, we use the is.na() function.
-is.na(5)
-is.na(NA)
-
-# Now let's only select rows where all of the data is present
-df_without_missing_entries = subset(df_with_missing_entries, 
-                                    !is.na(age) & !is.na(name))
-summary(df_without_missing_entries)
-str(df_without_missing_entries)
-
-# Alternatively, we could use the na.omit function
-df_without_missing_entries = na.omit(df_with_missing_entries)
-summary(df_without_missing_entries)
-str(df_without_missing_entries)
 
 ################################
-## UNDERSTANDING R WORKSPACES ##
+## SAVING YOUR PROGRESS ##
 ################################
 
-# When we are working with data frames, we can save the
-# data frame as a .csv
-write.csv(file="df_without_missing_entries.csv", df_without_missing_entries)
+# Sometimes you need to share a processed data set with a collaborator, or use it in another task. Use write_csv()!
+
+# Example: let's construct a version of the data set including only listings with a known number of bedrooms. The subset() function takes a data frame and keeps only those rows where a logical condition is satisfied. ! is the negation operator in R. 
+
+is.na(data$bedrooms)
+!is.na(data$bedrooms)
+
+subset(data, !is.na(data$bedrooms))
+write_csv(file="df_without_missing_entries.csv", df_without_missing_entries)
 
 #################
 ## ASSIGNMENTS ##
@@ -263,14 +194,14 @@ write.csv(file="df_without_missing_entries.csv", df_without_missing_entries)
 ##
 # 1a) Try out a few other basic statistics and graphing functions
 
-min(taxi_data$trip_distance)
-median(taxi_data$trip_distance)
-max(taxi_data$trip_distance)
+min(data$square_feet, na.rm = TRUE)
+median(data$square_feet, na.rm = TRUE)
+max(data$square_feet, na.rm = TRUE)
 
-sum(taxi_data$total_amount)
+sum(data$square_feet, na.rm = TRUE)
 
-hist(taxi_data$total_amount)
-boxplot(taxi_data$total_amount)
+hist(data$square_feet)
+boxplot(data$square_feet)
 
 #  b) Edit the histogram plot above to ensure that it has a title
 #     and that the x-axis is labeled properly

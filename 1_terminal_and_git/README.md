@@ -14,6 +14,7 @@ We will be learning the `R` programming language for statistical computation. To
 * **Download RStudio**: Navigate to https://www.rstudio.com/products/rstudio/download/ and download RStudio Desktop with an Open Source License. 
 * **Test Your Installation**: Open RStudio and type 1+2 into the Console window, and type "Enter."
 * Later in the class we will require the most recent version of R (>= 3.3.1). If you already had R installed on your computer, you may have an earlier version. To check and update the R version, you can either follow the **Install `R`** instructions above or follow the steps in pre-lecture-assignment-1.R.
+* **Install The Tidyverse**: We will use the `tidyverse` package for data analysis and visualization. In your Console window, type `install.packages("tidyverse")` and wait for the download to complete (it may take some time). 
 
 ## Task 3 (Windows Users Only): Download Putty
 

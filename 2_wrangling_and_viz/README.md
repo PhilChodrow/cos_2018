@@ -20,19 +20,19 @@ It may be helpful, however, to also keep handy the `S2_script_full.R` and `S2_ex
 
 We will use three libraries for this session: `tidyr`, `dplyr`, and `ggplot2`.  Before Thursday's session, ensure that you install them, and are able to load them into an R session in RStudio.  You can install them by executing the following commands in the RStudio console:
 ```
-install.packages('dplyr')
-install.packages('tidyr')
-install.packages('ggplot2')
+install.packages('tidyverse')
+install.packages('sf')
+install.packages('leaflet')
 ```
 
 You should test that the libraries will load by then running
 ```
-library(dplyr)
-library(tidyr)
-library(ggplot2)
+library(tidyverse)
+library(sf)
+library(leaflet)
 ```
 
-Then test that dplyr/tidyr work by executing the command:
+Test your tidyverse installation by running
 ```
 data.frame(name=c('Ann', 'Bob'), number=c(3.141, 2.718)) %>% gather(type, favorite, -name)
 ```
@@ -43,7 +43,7 @@ which should output something like this
     2  Bob number    2.718
 ```
 
-Finally, test that ggplot works by executing the command
+Finally, test that your tidyverse visualization package works by executing the command
 ```
 data.frame(x=rnorm(1000), y=rnorm(1000)) %>% ggplot(aes(x,y)) + geom_point()
 ```

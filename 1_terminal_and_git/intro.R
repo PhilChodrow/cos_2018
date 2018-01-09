@@ -92,46 +92,65 @@ ls()
 ## WORKING WITH DATA FRAMES ##
 ##############################
 
-# Let's grab a data set. First, make sure that your working directory is set to the location of this script file. You can do this by choosing Session -> Set Working Directory -> Source File Location
+# Let's grab a data set. First, make sure that your working directory 
+# is set to the location of this script file. You can do this by choosing 
+# Session -> Set Working Directory -> Source File Location
 
 # for the read_csv function
+# install.packages('tidyverse')
 library(tidyverse)
 
-# Our data is from AirBnB 2016-2017 listings in Boston. We're going to read in the listings.csv data set, which contains basic information about each residence on offer. 
-
-# read the data. It lives in the the `data` folder, which is one level up from the location of this script. 
+# Our data is from AirBnB 2016-2017 listings in Boston. We're going to read 
+# in the listings.csv data set, which contains basic information about 
+# each residence on offer. 
 
 data <- read_csv('../data/listings.csv')
 
-# The environment now has a `data` object, and tells you how many rows (observations) and columns (variables) are contained in that object. 
+# The environment now has a `data` object, and tells you how many rows 
+# (observations) and columns (variables) are contained in that object. 
 
-# Let's first take an interactive look at the data to see what kind of object we are dealing with.  
+# Let's first take an interactive look at the data to see what kind 
+# of object we are dealing with.  
 
 View(data)
 
-# So, we are dealing with a pretty standard "rectangular" data set.  How does R represent this object? 
+# So, we are dealing with a standard "rectangular" data set.  
+# How does R represent this object? 
 
 class(data)
 
-# The base class is data.frame; tbl_df is a wrapper with a few convenient extra tricks. We'll refer to data frames from here on out, and not distinguish between the two. 
+# The base class is data.frame; tbl_df is a wrapper with a few
+# convenient extra tricks. We'll refer to data frames from here 
+# on out, and not distinguish between the two. 
 
-# What if we need to know how many rows and columns there are?
+# The function str tells us about the structure of the columns
+# of our data set.
+str(data)
+
+# glimpse gives the same information, including the data types 
+# of the columns: 
+glimpse(data)
+
+# What if we just need to know how many rows and columns there are?
 nrow(data)
 ncol(data)
 
-# glimpse gives a more convenient summary of our data set and what's on it, including the data types of the columns: 
-glimpse(data)
 
 
-# Finally, you can just type in the name of your data into the console to get a view as well. Note that this may be hard to read if you have lots of columns. 
+
+# Finally, you can just type in the name of your data into the 
+# console to get a view as well. Note that this may be hard to 
+# read if you have lots of columns. 
 data
 
-# In R, basic data frames are LISTS of VECTORS. Get the individual vectors (columns) using the $ operator: 
+# Use data.frame$col to extract the column col from a data frame.
 
 data$host_response_time
 data$bedrooms
 
-# Many operations in R are VECTORIZED; that is, you can apply a single expression to an entire vector at once, without using a loop. Try these:
+# Many operations in R are vectorized; that is, you can apply 
+# a single expression to an entire vector at once, without 
+# using a loop.
 
 data$review_scores_rating / 100
 
@@ -139,7 +158,13 @@ data$bathrooms + data$bedrooms
 
 data$property_type == "Apartment"
 
-# We'll introduce much more powerful tools for working with data frames in Session 2. 
+# The subset function can be used to extract rows of
+# interest from a data frame (first argument is the
+# data frame, second argument is the criterion on which
+# to select)
+
+data.high_review = subset(data, review_scores_rating >= 90)
+glimpse(data.high_review)
 
 ####################################################
 ## BASIC STATISTICS, PLOTTING, AND SUMMARY TABLES ##
@@ -148,7 +173,7 @@ data$property_type == "Apartment"
 # Basic summary statistics
 mean(data$bedrooms)
 
-# woops! need to account for NA (missing values)
+# whoops! need to account for NA (missing values)
 
 mean(data$bedrooms, na.rm = TRUE)
 sd(data$bedrooms, na.rm = TRUE)
@@ -177,15 +202,18 @@ table(data$bedrooms, data$bathrooms)
 ## SAVING YOUR PROGRESS ##
 ################################
 
-# Sometimes you need to share a processed data set with a collaborator, or use it in another task. Use write_csv()!
+# Sometimes you need to share a processed data set with a collaborator, 
+# or use it in another task. 
+# To save the data to a file, we use write_csv().
 
-# Example: let's construct a version of the data set including only listings with a known number of bedrooms. The subset() function takes a data frame and keeps only those rows where a logical condition is satisfied. ! is the negation operator in R. 
+# Example: construct a version of the data set including only listings 
+# with a known number of bedrooms. 
 
 is.na(data$bedrooms)
 !is.na(data$bedrooms)
 
-subset(data, !is.na(data$bedrooms))
-write_csv(file="df_without_missing_entries.csv", df_without_missing_entries)
+data_without_missing_entries = subset(data, !is.na(data$bedrooms))
+write_csv(data_without_missing_entries,"data_without_missing_entries.csv")
 
 #################
 ## ASSIGNMENTS ##

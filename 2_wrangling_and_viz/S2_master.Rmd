@@ -33,7 +33,7 @@ library(dplyr)
 Let's load up the AirBnB data.  Remember to *set the working directory* to the folder with the data in it (one easy to do this is in the Files tab using the "More" drop-down menu).  Then, in a fresh script (or following along in the class script), type and execute:
 
 ```{r, echo=FALSE}
-raw_listings = read.csv('../data/listings.csv')
+raw_listings <- read.csv('../data/listings.csv')
 ```
 
 
@@ -100,7 +100,7 @@ Ah, so these are just listings without any reviews yet.  That's not alarming.  (
 
 Let's take a deeper look at prices, and we can make our lives easier by just overwriting that price column with the numeric version and saving it back into our `listings` data frame:
 ```{r}
-listings = listings %>% mutate(price = as.numeric(gsub('\\$|,', '', price)))
+listings <- listings %>% mutate(price = as.numeric(gsub('\\$|,', '', price)))
 ```
 
 Now --- what if we want to look at mean price, and `group_by` neighborhood?
@@ -342,7 +342,7 @@ We will now quickly run through a few of the other geometry options available, b
 For example, let's look at the price by neighborhood again.  First let's save the summary information we want to plot into its own object:
 
 ```{r}
-by.neighbor = listings %>%
+by.neighbor <- listings %>%
   group_by(neighbourhood_cleansed) %>%
   summarize(med.price = median(price))
 ```
@@ -470,7 +470,7 @@ listings %>%
 Now I'm not crazy about any of this since the default color scheme (or **palette**) involves green and red, and I am red-green colorblind.  Woe is me and my fellow colorblind peoples.  But this is just a matter of specifying our palette, and fortunately there is a colorblind-friendly palette which we can load into our session as a list of hexadecimal color codes:
 
 ```{r}
-cbbPalette = c("#E69F00", "#56B4E9", "#009E73",
+cbbPalette <- c("#E69F00", "#56B4E9", "#009E73",
                "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 ```
 
@@ -679,14 +679,14 @@ But what if we want to compare the distributions of daily, weekly, and monthly p
 
 To gather up **wide** data into a **long** format, we can use the `gather` function.  This needs us to specify the desired new columns in standardized form, and the input columns to create those new ones.  First let's make sure our listings data has the converted prices:
 ```{r}
-listings = listings %>%
+listings <- listings %>%
   mutate_at(c('price', 'weekly_price', 'monthly_price'),
             funs(as.numeric(gsub('\\$|,', '', .))))
 ```
 
 Now let's take a look at what `gather` looks like:
 ```{r}
-long.price = listings %>%
+long.price <- listings %>%
   select(id, name, price, weekly_price, monthly_price) %>%
   gather(freq, tprice, price, weekly_price, monthly_price) %>%
   filter(!is.na(tprice))
@@ -806,21 +806,21 @@ There is also `semi_join`, `anti_join`, ways to handle coercion, ways to handle 
 
 Let's say we have a tidy table of the number of bathrooms and bedrooms for each listing, which we get by doing
 ```{r}
-rooms = listings %>%
+rooms <- listings %>%
   select(name, bathrooms, bedrooms) %>%
   gather(room.type, number, bathrooms, bedrooms)
 ```
 
 But we may also want to look at the distribution of daily prices, which we can store as
 ```{r}
-prices = listings %>%
+prices <- listings %>%
   select(name, price) %>%
   mutate(price = as.numeric(gsub('\\$|,', '', price)))
 ```
 
 Now, we can do a full join to add a `price` column.
 ```{r}
-rooms.prices = full_join(rooms, prices, by='name')
+rooms.prices <- full_join(rooms, prices, by='name')
 ```
 
 This gives us a table with the number of bed/bathrooms separated out in a tidy format (so it is amenable to ggplot), but also prices tacked on each row (so we can incorporate that into the visualization).  Let's try a boxplot of price, by number of rooms, and use facets to separate out the two different types of room.  (We will also filter out half-rooms just to help clean up the plot.)

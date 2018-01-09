@@ -5,21 +5,15 @@ output: html_document
 
 # Agenda
 
-In this session, we will introduce basic techniques in data wrangling and visualization in R.  Specifically, we will cover some basic tools using out-of-the-box R commands, then introduce the powerful framework of the tidyverse (both in wrangling and visualizing data), and finally gain some understanding of the philosophy of this framework to set up deeper exploration of our data.  Throughout, we will be using a publicly available dataset of AirBnB listings, and in the classroom version, we will follow an R script and there will be additional exercises in between sections.
-
-- [Base R Basics](#base-r-basics): loading data; checking it out. ([Exercises](#base-r-exercises))
 - [Introducing the Tidyverse](#introducing-the-tidyverse): standardized and idiomatic data analysis; basic commands. ([Exercises](#tidyverse-exercises))
 - [Introducing the Grammar of Graphics](#introducing-the-grammar-of-graphics): what is a grammar of graphics and why do I care?; basic plots. ([Exercises](#ggplot-exercises))
 - [Going Wider and Deeper](#going-wider-and-deeper): understanding the tidy philosophy; enhancing visualization; multiple datasets
 
-
-
-# Base R Basics
+# Introducing the Tidyverse
 
 [(back to top)](#agenda)
 
-This tutorial assumes you have RStudio installed, can load a CSV file into your current session, and are comfortable entering commands both from an R script or directly into the console.
-
+Base R may be slow and arcane, but we'll be going over a set of packages that make R a joy to work with for data wrangling. Collectively known as the Tidyverse, these packages are more or less standard for any practitioner working with R. They provide a clean and idomatic language for manipulating and visualizing data.
 
 ## Loading the data
 
@@ -28,188 +22,6 @@ Let's load up the AirBnB data.  Remember to *set the working directory* to the f
 ```{r, echo=FALSE}
 listings = read.csv('../data/listings.csv')
 ```
-```{r, eval=FALSE}
-listings = read.csv('listings.csv')
-```
-
-Note we are using `=` as our assignment operator.  Some R-ers use `<-` which does the same thing, and is just a different convention.  This command may take a second or two (it's a big file!) but notice now we have a variable `listings` in our Environment tab.
-
-
-## Taking a look
-
-Let's check it out.  The `head` command prints out the first parts of a vector, matrix, table, etc.
-```{r eval=FALSE}
-head(listings)
-```
-
-It looks like each column is a variable (like "reviews_per_month" or "price") and each row corresponds to a different AirBnB listing.  We can look in Environment and see there's actually 3,585 rows of 95 variables.  Some other useful "recon"-ish commands are:
-
-```{r eval=FALSE}
-str(listings)       # display the structure of an object
-summary(listings)   # give summary statistics
-colnames(listings)  # display just column names
-```
-
-A few things to note:
-
-- There are different variable types: `int` (integer), `logi` (true/false), `num` (numeric), `chr` (character), `Factor`.
-- Factor tends to be anything R can't categorize as one of the other types, and so it gives each unique value (string, number, whatever) its own "factor". We can prevent R from converting string-like or non-number-y values into factors by modifying our csv command with `read.csv(..., stringsAsFactors=FALSE)`.  This usually keeps strings as strings.
-- Sometimes the variable type that R picks isn't what we expect: check out any of the columns dealing with price (We'll deal with this later).
-- We have a missing data problem: many columns have an "NA" count (we'll deal with this later too).
-
-But there is a lot to process here (95 variables!).  Maybe we want to look at a specific row, or a specific group of columns.  Try out a few of these:
-```{r eval=FALSE}
-listings[4,]       # row four
-listings[,5]       # column five
-listings[4,5]      # row four, column five
-listings[5]        # also column five
-listings["name"]   # also column five
-listings$name      # also column five
-listings[4,]$name  # column five for row four
-listings[c(3,4),]$name  # column five for row three and four
-listings[c(3,4),c(5,6)] # column five and six for row three and four
-listings[4,5:7]    # row 4, columns five through seven
-```
-
-Let's try that `summary` command again, but on just a few columns...
-```{r}
-summary(listings[c('square_feet', 'reviews_per_month')])
-```
-
-You might have noticed we snuck in the `c(...)` notation to handle multiple indices, which creates a **vector** of values.  Similar to the numeric/factor/character data types from before, which took a single value, there are several data types that are "array-like" and can hold multiple values.  Some of them are:
-
-- Data frame.  Our `listings` object is actually a `data.frame`, since this is the default object returned from the `read.csv` function.  It is basically a table of values, where each column has a particular data type and can be indexed by name.
-- Vector.  Ordered list of any data type.  For example: `my.vec = c(1, 3, 10)` or `my.vec2 = c('Ann', 'Bob', 'Sue')`.
-- List.  Un-ordered list of any data type, for example `my.list = list(c(1,3,10))`.
-- Matrix.  This is just a table of values, where everything is the same data type, and you cannot index by column.
-
-We can usually convert from one data type to another by doing something like `as.numeric()` or `as.matrix()`, but we should always check that our conversion did what we expected.  We'll only use data frames and vectors in this session, but later we'll also see an enhanced version of the data frame type.
-
-Another common base R function that gets a lot of mileage, is `table` (although we'll introduce a more flexible alternative later).  `table` provides a quick way to cross-tabulate counts of different variables.  So in our dataset, if we want to see the count of how many listings are listed under each room type, we can just do
-
-```{r}
-table(listings$room_type)
-```
-
-And if we wanted to cross-tabulate this with the number the room accommodates, we can just add that in to the `table` command, like this:
-```{r}
-table(listings$room_type, listings$accommodates)
-```
-
-We can even make one of the arguments a "conditional," meaning a statement that can be answered by "true" or "false", like the count of rooms by type that accommodate at least 4 people:
-```{r}
-table(listings$room_type, listings$accommodates >= 4)
-```
-
-We'll learn some cleaner (and hopefully more intuitive) ways to **select** and **filter** and **summarize** the data like this later.  But for now, let's try visualizing some of it.
-
-How about the distribution of daily rates/prices?
-
-We want to run something like `hist(listings$price)`, but this gives an error: "price is not numeric". (Try it!)  Why?
-```{r eval=FALSE}
-str(listings$price)        # notice it says "Factor w/ 324 Levels"
-```
-
-Like we mentioned earlier, when R loads a file into a data table, it automatically converts each column into what it thinks is the right type of data.  For numbers, it converts it into "numeric", and usually for strings (i.e. letters) it converts it into "factors" --- each different string gets its own "factor."  The price column got converted into factors because the dollar signs and commas made R think it was strings.  So each different price is its own different factor.
-
-(We would still have a similar problem even if we used `stringAsFactors=FALSE` when we loaded the CSV, just instead of factors, the prices would all be strings, i.e. of type `chr`, but still not a number.)
-
-Let's make a new variable that will have the numeric version of price in it:
-
-```{r}
-listings$nprice = as.numeric(gsub('\\$|,', '', listings$price))
-```
-
-This command says: in the price column, substitute (sub) the `\\$|,` character out with nothing `''`, then convert everything to type `numeric`, then assign it to this new column called `nprice`.  The `'\\$|,'` character is really some magic that means "the `$` character *or* the `,` character," and there's no need to worry about it too much.  (The `\\` are called "escape characters" because `$` has special meaning otherwise, and the `|` symbol means "or".)
-
-Now let's try again:
-
-```{r}
-hist(listings$nprice)
-```
-
-Well that is a horrible figure, but at least it worked.  Maybe a scatter plot of price vs. reviews?
-
-```{r}
-plot(listings$review_scores_rating, listings$nprice)
-```
-
-That is the ugliest thing I have ever seen.  But there does seem to be some upward trend happening between these variables, so that might be interesting?  Before we start poking around much more, let's rescue ourselves from the Base R trenches by introducing some better tools.
-
-
-# Base R Exercises
-
-[(back to top)](#agenda)
-
-**Exercise 1. Conditional statements.**  Earlier we did a `table` by looking at rooms that accommodated "at least 4" (`>= 4`).  We can also look at "at most 4" (`<= 4`), "exactly 4" (`== 4`), or "anything but 4" (`!= 4`) people, and of course "strictly less than 4" (`<`) and "strictly more than 4" (`>`).  We can also join conditional statements together by saying "at most 4 OR exactly 7" (`accommodates <= 4 | accommodates == 7`) where we used the OR operator `|`, or a similar statement using the AND operator `&`.
-
-How could we do a table of listing counts by room type comparing how many are/are not in the Back Bay neighborhood?
-
-*ANSWER:*
-```{r}
-table(listings$room_type, listings$neighbourhood == 'Back Bay')
-```
-
-**Exercise 2. The `%in%` operator.**  What if we wanted to check if the listing was in one of several neighborhoods, like the North End/West End/Beacon Hill strip?  We can put the neighborhoods in a vector (or list) and check if the listing is `%in%` the vector, for example `listings$neighbourhood %in% c('North End', 'West End', 'Beacon Hill')`.
-
-How could we check the number of listings by room type that accommodate either 2, 4, or 7 AND have at least 2 bedrooms?
-
-*ANSWER:*
-```{r}
-table(listings$room_type, listings$accommodates %in% c(2,4,7) & listings$bedrooms >= 2)
-```
-
-(What happens if we keep passing `table()` more and more arguments, like `table(..., listings$accommodates==2, listings$accommodates==4, ...)` ?)
-
-
-**Exercise 3. Converting dates and times.**  We often have date/time information we need to use in our data, but which are notoriously tricky to handle: different formats, different time zones, ... blech.  R provides a data type (`Date`) to handle dates in a cleaner way.  We can usually take our raw dates (like "2016-01-12") and convert by doing `as.Date(my.table$raw.date, '%Y-%m-%d')`.  The second argument is a formatting string that tells `as.Date` how the input raw data is formatted.  This example uses `%Y` (meaning 4-digit year), `%m` and `%d` (meaning 2-digit month and day).  There are similar strings for other formats (see for example [here](https://www.r-bloggers.com/date-formats-in-r/)).
-
-Try creating a new column in `listings` named "last_review_date" that has the "last_review" column in `Date` format.
-
-*ANSWER:*
-```{r}
-listings$host_since_date = as.Date(listings$host_since, '%Y-%m-%d')
-```
-
-This allows us to treat dates like numbers, and R will do all the conversion and math "behind the scenes" for us.  Use `min()`, `max()`, and `mean()` to find the earliest, last, and average date a host became a host.  Or how about: how many days between the 3rd and 4th listings' hosts dates?
-
-*ANSWER:*
-```{r}
-min(listings$host_since_date)
-max(listings$host_since_date)
-mean(listings$host_since_date)
-listings[4,'host_since_date'] - listings[3,'host_since_date']
-```
-
-There is a ton more to learn here, if you are interested.  `Date` can handle any format, including numeric formats (like Excel generates or UNIX time stamps), but sometimes the difficulty is something like handling dates that are formatted in different ways in the same column, or contain errors ("Marhc 27th") ...
-
-***Exercise 4. Text handling.***  We have seen the `chr` data type, which can be single characters or strings of characters.  We can get substrings of a string using `substr()`; for example `substr("I love R", start=1, stop=4)` gives "I lo".  We can paste two strings together using `paste()`; for example `paste("Hello", "there")` gives "Hellothere" (no space).  We can substitute one string into another using `sub()`; for example `sub("little", "big", "Mary had a little lamb")` gives "Mary had a big lamb".  (We used `gsub()` earlier, which just allows multiple substitutions, not just the first occurrence.)
-
-Try creating a new column with the first 5 letters of the host name followed by the full name of the listing without spaces.
-
-*ANSWER:*
-```{r}
-listings$host_list_name = paste(substr(listings$host_name,start=1,stop=5),
-                                gsub(' ','',listings$name))
-```
-
-We are not going to cover **escape characters**, **string formatting**, or the more general topic of **regular expressions** ("regex"), but we have seen some of these topics already.  When converting price to numeric, we used the string `\\$|,` to represent "any dollar sign OR comma", which is an example of escape characters and regular expressions.  When converting dates, we used strings like `%Y` to represent 4-digit year; this is an example of string formatting.
-
-
-
-# Introducing the Tidyverse
-
-[(back to top)](#agenda)
-
-Hadley Wickham, a statistician and computer scientist, introduced a suite of packages to give an elegant, unified approach to handling data in R (check out [the paper](http://vita.had.co.nz/papers/tidy-data.html)!).  These data analysis tools, and the philosophy of data handling that goes with them, have become standard practice when using R.
-
-- *Sidenote 1:*  This is jokingly referred to as the Tidyverse, or sometimes the Hadleyverse. It actually started with the twin libraries `plyr` and `reshape`, then `reshape2`, and in 2014 the current incarnation of `tidyr` and `dplyr` that we will use.  (In fact, you can install the entire suite with the library call `tidyverse`.)
-
-- *Sidenote 2:*  If you are a Python user, there is a rough analogy between `tidyr`/`dplyr` (with `ggplot` for visualization) and the NumPy/SciPy/Pandas suite (with Matplotlib/Seaborn for visualization).  In other words, it provides a unified, clean, and more powerful way of working with data than provided in the base language, and is nearly universally used by practitioners.
-
-The motivating observation is that data *tidying* and *preparation* consumes a majority of the data scientist's time; exacerbating the problem is the fact that data cleaning is seen as lowly janitor work, and often skipped or done shoddily.  If the data scientist is a chef, data preparation is keeping a clean kitchen, and we all tend to have dirty plates stacked to the ceiling.
-
-The underlying concept is then to envision data wrangling in an idiomatic way (as a "grammar"), with a simple set of rules that can unify data structures and data handling everywhere.  In this preliminary section, we will focus on this natural approach to data handling: data are the nouns, and actions are the verbs.  We will then see how this directly nests with an elegant way to visualize that data, and later we will delve into tidy structures: of standardizing the way we represent the data itself.
 
 
 ## Loading the libraries
@@ -226,14 +38,13 @@ library(dplyr)
 
 ## Some basics
 
-Let's try doing some of the basic data recon that we were messing with before, but with tidyr and dplyr.
-
-How about `select`ing a specific column, and looking at the first few rows:
+Let's do some basic exploration on the data. How about `select`ing a specific column, and looking at the first few rows:
 ```{r}
 head(select(listings, reviews_per_month))
 ```
 
-This is fine, but it's a little awkward having to nest our code like that.  Luckily, there is a nifty operator included with tidyr called the **chaining operator** which looks like `%>%` and serves like a pipeline from one function to another.  Now we can instead do this:
+This is fine, but it's a little awkward having to nest our code like that.  Luckily, there is a nifty operator included with tidyr called the **chaining operator** which looks like `%>%` and serves like a pipeline from one function to another. Specifically: `x %>% f == f(x)`. Now we can instead do this:
+
 ```{r}
 listings %>% select(reviews_per_month) %>% head()
 ```
@@ -246,7 +57,7 @@ listings %>% select(name, reviews_per_month) %>%
   filter(!is.na(reviews_per_month), reviews_per_month > 12)
 ```
 
-Amazing.  It's as if we are speaking to the console in plain English.  The `is.na()` function returns "True" if something is `NA`, so `!is.na()` (read: "*not* is NA") returns the opposite.
+The `is.na()` function returns "True" if something is `NA`, so `!is.na()` (read: "*not* is NA") returns the opposite.
 
 How many of those NAs are there?  Let's `count` them:
 ```{r}
@@ -436,9 +247,7 @@ listings %>%
 
 [(back to top)](#agenda)
 
-We already saw how awful the Base R plotting functions like `plot()` and `hist()` are, straight out of the box, anyway.  We'd like to argue that they aren't just clunky for their aesthetic feel, but the fact that each function is stand-alone, takes different arguments, etc.  We'd like some unifying approach to graphics, similar to what we've begun to see with tidyr.
-
-`ggplot` gives us just that.  ggplot was created by Leland Wilkinson with his book [The Grammar of Graphics](https://www.cs.uic.edu/~wilkinson/TheGrammarOfGraphics/GOG.html) (which is the gg in ggplot), and put into code by Hadley Wickham.  We'll see it not only provides a clean way of approaching data visualization, but also nests with the tidyr universe like a hand in a glove.
+`ggplot` provides a unifying approach to graphics, similar to what we've begun to see with tidyr. ggplot was created by Leland Wilkinson with his book [The Grammar of Graphics](https://www.cs.uic.edu/~wilkinson/TheGrammarOfGraphics/GOG.html) (which is the gg in ggplot), and put into code by Hadley Wickham.  We'll see it not only provides a clean way of approaching data visualization, but also nests with the tidyr universe like a hand in a glove.
 
 ## Philosophy
 

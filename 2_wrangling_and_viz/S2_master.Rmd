@@ -9,7 +9,7 @@ output: html_document
 - [Introducing the Grammar of Graphics](#introducing-the-grammar-of-graphics): what is a grammar of graphics and why do I care?; basic plots. ([Exercises](#ggplot-exercises))
 - [Going Wider and Deeper](#going-wider-and-deeper): understanding the tidy philosophy; enhancing visualization; multiple datasets
 
-# Introducing the Tidyverse
+# Introducing the Tidyverse: `dplyr`
 
 [(back to top)](#agenda)
 
@@ -33,19 +33,19 @@ library(dplyr)
 Let's load up the AirBnB data.  Remember to *set the working directory* to the folder with the data in it (one easy to do this is in the Files tab using the "More" drop-down menu).  Then, in a fresh script (or following along in the class script), type and execute:
 
 ```{r, echo=FALSE}
-listings = read.csv('../data/listings.csv')
+raw_listings = read.csv('../data/listings.csv')
 ```
 
 
 Let's do some basic exploration on the data. How about `select`ing a specific column, and looking at the first few rows:
 ```{r}
-head(select(listings, price))
+head(select(raw_listings, price))
 ```
 
 This is fine, but it's a little awkward having to nest our code like that.  Luckily, there is a nifty operator included with tidyr called the **chaining operator** which looks like `%>%` and serves like a pipeline from one function to another. Specifically: `x %>% f == f(x)`. Now we can instead do this:
 
 ```{r}
-listings %>% select(price) %>% head()
+raw_listings %>% select(price) %>% head()
 ```
 
 which is much, much nicer.  Notice that the chaining operator feeds in the object on its left as the first argument into the function on its right.
@@ -53,25 +53,34 @@ which is much, much nicer.  Notice that the chaining operator feeds in the objec
 You might notice that these prices are actually strings. If we want to work with these as numbers, we'll need to convert them. Let's try using `mutate`, which allows us to create new columns -- often by referring to existing ones.
 
 ```{r}
-listings %>%
+raw_listings %>%
   mutate(nprice = as.numeric(gsub('\\$|,', '', price))) %>%
   select(name, price, nprice)
 ```
 
 Note that the tidyverse packages generally do not change the dataframe objects they act on. For example, the code above doesn't change `listings`, but instead returns a new dataframe that has the same data as `listings`, plus an extra column.
 
-Now, let's learn some more verbs. How about also selecting the name, and `filter`ing out missing entries and low values?
+Now, let's learn some more verbs. Let's say we're interested in understanding the relationship between bedrooms and price. But some of the listings don't have data on bedrooms; can we `count` how many?
 
 ```{r}
-listings %>% select(name, reviews_per_month) %>%
-  filter(!is.na(reviews_per_month), reviews_per_month > 12)
+raw_listings %>% count(is.na(bedrooms))
 ```
 
-The `is.na()` function returns "True" if something is `NA`, so `!is.na()` (read: "*not* is NA") returns the opposite.
+Let's filter these out:
 
-How many of those NAs are there?  Let's `count` them:
 ```{r}
-listings %>% count(is.na(reviews_per_month))
+raw_listings %>% filter(!is.na(bedrooms))
+```
+
+Finally, let's combine all of these to make a clean dataset to work with. We want to make sure our data has a correct price column, no missing bedroom column, and only has a subset of the ~100 columns we started out with. We'll assign it to a dataframe named `listings`.
+
+
+```{r}
+listings <- raw_listings %>%
+  filter(!is.na(bedrooms)) %>%
+  mutate(price = as.numeric(gsub('\\$|,', '', price))) %>%
+  select(name, price, bedrooms,
+         neighbourhood_cleansed, latitude, longitude, review_scores_rating)
 ```
 
 
@@ -232,17 +241,17 @@ listings %>%
 
 ## Philosophy
 
-What does **grammar of graphics** mean?  A grammar is a set of guidelines for how to combine components (ingredients) to create new things.  One example is the grammar of language: in English, you can combine a noun (like "the dog") and a verb (like "runs") to create a sentence ("the dog runs").  Another example is baking: you can combine a body (like flour), a binder (like eggs), a rising agent (like yeast), and flavoring (like sugar) to create a delicious dish (like a pastry).  Notice that these are loose guidelines (see: experimental chefs, or the poetry of e.e. cummings) but there are certainly invalid combinations (like "dog the runned" or substituting salt for sugar).
+What does **grammar of graphics** mean?  A grammar is a set of guidelines for how to combine components (ingredients) to create new things.  One example is the grammar of language: in English, you can combine a noun (like "the dog") and a verb (like "runs") to create a sentence ("the dog runs").
 
-Let's translate this idea to visualization.  Our ingredients are:
+Let's translate this idea to visualization. Every ggplot consists of three main elements:
 
-- **Data**. This is the base of our dish, and is probably a `data.frame` object like we have been using.
-- **Aes**thetic.  This is the mapping of the parts of the data to chart components. (Like "price on the x-axis".)
-- **Geom**etry.  The specific visualization shape: a line plot, a point (scatter) plot, bar plot, etc.
+- **Data**: The dataframe we want to plot.
+- **Aes**thetics: The dimensions we want to plot, e.g. x, y, color, size, shape, etc.
+- **Geom**etry:  The specific visualization shape. Line plot, scatter plot, bar plot, etc.
+
+A couple less important parts:
 - **Stat**istical transformation.  How should the data be transformed or aggregated before visualizing?
 - **Theme**.  This is like flavoring: how do we want the chart to look and feel?
-
-In this scheme, our "required ingredients" are the **Data**, the **Aes**thetic, and the **Geom**etry.
 
 ## Example
 
@@ -250,11 +259,6 @@ First, make sure you've got `ggplot2` installed (with `install.packages('ggplot2
 
 ```{r message=FALSE}
 library(ggplot2)
-```
-
-That scatterplot of the price against the review score seemed interesting, we'd like to revisit it.  First let's save the numeric price column into our listings data table, just for convenience (you should have already done this in the previous section, but just in case):
-```{r}
-listings = listings %>% mutate(price = as.numeric(gsub('\\$|,', '', price)))
 ```
 
 Now, we chain this into the `ggplot` function...
@@ -333,7 +337,7 @@ Also, when you finally get one you like, you can "Export" it to a PDF (recommend
 
 ## Other geometries: Line plots, Box plots, and Bars
 
-We will now quickly run through a few of the other geometry options available, but truly, we don't need to spend a lot of time here since each follows the same grammar as before --- the beauty of ggplot!
+We will now quickly run through a few of the other geometry options available, but truly, we don't need to spend a lot of time here since each follows the same grammar as before --- the beauty of ggplot! Note that geoms are stackable -- we can just keep adding them on top of each other.
 
 For example, let's look at the price by neighborhood again.  First let's save the summary information we want to plot into its own object:
 
@@ -399,16 +403,6 @@ listings %>%
 ```
 
 A boxplot shows the 25th and 75th percentiles (top and bottom of the box), the 50th percentile or median (thick middle line), the max/min values (top/bottom vertical lines), and outliers (dots).  By simply changing our geometry command, we now see that although the medians were very similar, the distributions were quite different (with Bay Village especially having a "heavy tail" of expensive properties), and there are many extreme outliers ($3000 *a night*?!).
-
-Another slick way to visualize this is with a "violin plot".  We can just change our geometry to `geom_violin` and voila!
-
-```{r}
-listings %>%
-  filter(neighbourhood_cleansed %in% c('South Boston Waterfront', 'Bay Village',
-                                       'Leather District', 'Back Bay', 'Downtown')) %>%
-  ggplot(aes(x=neighbourhood_cleansed, y=price)) +
-  geom_violin()
-```
 
 
 ### Histograms, Palettes, and Multiple plots
@@ -506,9 +500,6 @@ listings %>%
 Compare the changes we made to the aesthetic mapping and palette command from the previous plot to this one --- we are mapping the palette to line color, not fill, so we had to make a few tweaks.
 
 Importantly, it is now easy to see that "shared room" listings run cheaper more often than other room types, and almost all the pricey rooms are "entire home/apt".  Nothing surprising here, but good to be able to check our intuitions in the actual data.
-
-
-
 
 ## Statistical fanciness
 
@@ -643,9 +634,6 @@ listings %>%
 ```
 
 Perfect --- we still see the trend (possibly clearer?) and we are not worried about weird effects from small bins.
-
-
-
 
 
 # Going Wider and Deeper

@@ -58,6 +58,17 @@ raw_listings %>%
   select(name, price, nprice)
 ```
 
+We can also `arrange` this info (sort it) to see the lowest- or highest-priced listings:
+
+```{r}
+raw_listings %>%
+  mutate(nprice = as.numeric(gsub('\\$|,', '', price))) %>%
+  select(name, price, nprice) %>%
+  arrange(price)
+```
+
+(Descending order would just be `arrange(desc(med.price))`.)
+
 Note that the tidyverse packages generally do not change the dataframe objects they act on. For example, the code above doesn't change `listings`, but instead returns a new dataframe that has the same data as `listings`, plus an extra column.
 
 Now, let's learn some more verbs. Let's say we're interested in understanding the relationship between bedrooms and price. But some of the listings don't have data on bedrooms; can we `count` how many?
@@ -87,23 +98,12 @@ listings <- raw_listings %>%
 ## Aggregation
 Now, how about a summary statistic, like the average price for a listing? Let's take our clean dataset and `summarize` it to find out.
 
-
-Hmm.  Does it have anything to do with just recent listings?  Let's do a table to `summarize` the number of reviews for an NA entry by showing the average number of reviews:
 ```{r}
-listings %>%
-  filter(is.na(reviews_per_month)) %>%
-  summarize(avg.num.reviews = mean(number_of_reviews))
+listings %>% summarise(price = mean(price))
 ```
 
-Ah, so these are just listings without any reviews yet.  That's not alarming.  (**Note to international students:** `summarise` also works!)
+Now --- what if we want to look at mean price by neighborhood? We can do that with `group_by`:
 
-
-Let's take a deeper look at prices, and we can make our lives easier by just overwriting that price column with the numeric version and saving it back into our `listings` data frame:
-```{r}
-listings <- listings %>% mutate(price = as.numeric(gsub('\\$|,', '', price)))
-```
-
-Now --- what if we want to look at mean price, and `group_by` neighborhood?
 ```{r}
 listings %>%
   group_by(neighbourhood_cleansed) %>%
@@ -135,18 +135,7 @@ listings %>%
   filter(num > 200)
 ```
 
-We can also `arrange` this info (sort it) by the hopefully more meaningful median price:
-```{r}
-listings %>%
-  group_by(neighbourhood_cleansed) %>%
-  summarize(avg.price = mean(price),
-            med.price = median(price),
-            num = n()) %>%
-  filter(num > 200) %>%
-  arrange(med.price)
-```
-
-(Descending order would just be `arrange(desc(med.price))`.)  We can also pick a few neighborhoods to look at by using the `%in%` keyword in a `filter` command with a list of the neighborhoods we want:
+  We can also pick a few neighborhoods to look at by using the `%in%` keyword in a `filter` command with a list of the neighborhoods we want:
 ```{r}
 listings %>%
   filter(neighbourhood_cleansed %in% c('Downtown', 'Back Bay', 'Chinatown')) %>%
@@ -161,77 +150,35 @@ We have now seen: `select`, `filter`, `count`, `summarize`, `mutate`, `group_by`
 
 But ... we'd really like to visualize some of this data, not just scan summary tables.  Next up, `ggplot`.
 
-
-
-
 # Tidyverse Exercises
 
 [(back to top)](#agenda)
 
-We'll now introduce a few new tricks for some of the dplyr verbs we covered earlier, but this is by no means a comprehensive treatment.
+Let's try an exercise to integrate what we've learned so far, and to learn a couple new tricks. Suppose we want to divide the prices into quartiles, and we want to know the mean rating by both number of bedrooms and quartile. Furthermore, for each group, we also want to know the mean rating just for listings in Back Bay.
 
-**Exercise 1. More with `select`.**  In addition to selecting columns, `select` is useful for temporarily renaming columns.  We simply do an assignment, for example `select('New colname'=old_col_name)`.  This is helpful for display purposes when our column names are hideous.  Try generating the summary table of median price by room type but assigning some nicer column labels.
+The result should look something like this (there may be some NaNs for groups with no data):
 
-*ANSWER:*
-```{r}
-listings %>%
-  mutate(price = as.numeric(gsub('\\$|,','',price))) %>%
-  group_by(room_type) %>%
-  summarize(med = median(price)) %>%
-  select('Room type'=room_type, 'Median price'=med)
-```
+| bedrooms|price_bin   | mean_rating| mean_back_bay_rating|
+|--------:|:-----------|-----------:|--------------------:|
+|        0|(10,85]     |    92.50000|                  NaN|
+|        0|(85,150]    |    89.70492|             91.65385|
+|        0|(150,220]   |    93.25806|             93.60000|
+|        0|(220,4e+03] |    93.50000|             96.00000|
+|        1|(10,85]     |    90.07500|             95.00000|
+|        1|(85,150]    |    92.80379|             92.50000|
 
-Another useful trick with select (and other functions in R) is to include *all but* a column by using the minus `-` sign before the excluded column.  For example `listings %>% select(-id)` selects every column *except* the listing ID.
+Feel free to use the internet for help!
 
-
-**Exercise 2. More with `group_by`.**  We can group by multiple columns, and dplyr will start cross-tabulating the information within each group.  For example, let's say we want the count of listings by room type and accommodation, we could do
-```{r}
-listings %>% group_by(room_type, accommodates) %>% count()
-```
-
-This is the same information we got earlier using a `table` command (although in an interestingly *longer* format, which we will talk about later).  Try finding the median daily price of a listing, grouped by number of bedrooms and number of bathrooms:
+Hint: `cut(x, breaks = quantile(x))` takes a numeric vector `x`, and returns a vector of labels indicating which quartile each element of `x` falls into.
 
 *ANSWER:*
 ```{r}
 listings %>%
-  mutate(price = as.numeric(gsub('\\$|,','',price))) %>%
-  group_by(bedrooms, bathrooms) %>%
-  summarize(med = median(price))
+  mutate(price_bin = cut(price, breaks = quantile(price))) %>%
+  group_by(bedrooms, price_bin) %>%
+  summarise(mean_rating = mean(review_scores_rating, na.rm = TRUE),
+            mean_back_bay_rating = mean(review_scores_rating[neighbourhood_cleansed == 'Back Bay'], na.rm = TRUE))
 ```
-
-
-**Exercise 3. More with `mutate`.**  The code block earlier with multiple mutation commands got a little repetitive, and we are lazy.  We would rather have a verb so we can select some columns, and apply some function to `mutate_all` of them:
-```{r}
-listings %>%
-  select(price, weekly_price, monthly_price) %>%
-  mutate_all(funs(numversion = as.numeric(gsub('\\$|,', '', .)))) %>%
-  head()
-```
-
-This is fairly straightforward, with two "tricks": `funs()` is a convenience function we have to use to tell dplyr to apply the transformation to multiple columns, and the period `.` serves as a stand-in for the column we're on.  Note also we have created new columns which tack on "_numversion" to the older columns, but if we leave out that assignment in `funs()` we just overwrite the previous columns.  If we want to be able to specify which columns we want to `mutate_at`, we can do:
-```{r}
-listings %>%
-  select(name, price, weekly_price, monthly_price) %>%
-  mutate_at(c('price', 'weekly_price', 'monthly_price'),  # specify a list of cols
-            funs(as.numeric(gsub('\\$|,', '', .)))) %>%   # specify the transformation
-  head()
-```
-
-This time also notice that we actually didn't make new columns, we mutated the existing ones.
-
-(There is also a variation for conditional operations (`mutate_if`) and analogous versions of all of this for summarize (`summarize_all`, ...).  We don't have time to cover them all, but if you ever need it, you know it's out there!)
-
-Try using one of these methods to convert all the date columns to `Date` (fortunately they all use the same formatting).
-
-*ANSWER:*
-```{r}
-listings %>%
-  select(last_scraped, host_since, first_review, last_review) %>%
-  mutate_all(funs(as.Date(., "%Y-%m-%d"))) %>%
-  head()
-```
-
-
 
 # Introducing the Grammar of Graphics
 
@@ -246,10 +193,10 @@ What does **grammar of graphics** mean?  A grammar is a set of guidelines for ho
 Let's translate this idea to visualization. Every ggplot consists of three main elements:
 
 - **Data**: The dataframe we want to plot.
-- **Aes**thetics: The dimensions we want to plot, e.g. x, y, color, size, shape, etc.
+- **Aes**thetics: The dimensions we want to plot, e.g. x, y, color, size, shape.
 - **Geom**etry:  The specific visualization shape. Line plot, scatter plot, bar plot, etc.
 
-A couple less important parts:
+A couple less important components:
 - **Stat**istical transformation.  How should the data be transformed or aggregated before visualizing?
 - **Theme**.  This is like flavoring: how do we want the chart to look and feel?
 

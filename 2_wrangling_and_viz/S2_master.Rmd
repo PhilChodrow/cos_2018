@@ -853,9 +853,9 @@ First, let's grab some zip code shapes from [Analyze Boston](http://bostonopenda
 shp <- read_sf('shape/ZIP_Codes.shp')
 ```
 
-Here, `shp` is a spatial dataframe -- you can manipulate it using the usual dplyr operations, but it has columns containing
+Here, `shp` is an sf ("simple features") dataframe. You can manipulate it using the usual dplyr operations; it just has a column containing a special "geometry" column that has the geometry (point, line, polygon, etc.) corresponding to each row.
 
-Next, let's grab the relevant information from the listings data and turn it into an sf dataframe:
+Next, let's grab the relevant information from the listings data and turn it into dataframe:
 
 ```{r}
 listing_geos <- listings %>%
@@ -879,8 +879,8 @@ by.zip <- st_join(shp, listing_geos, join = st_contains) %>%
             do_union = FALSE)
 ```
 
+Finally, we plot the map with leaflet:
 
-Finally, we plot the with leaflet.
 ```{r}
 leaflet(by.zip) %>%
   addProviderTiles("CartoDB.Positron") %>%
@@ -888,6 +888,11 @@ leaflet(by.zip) %>%
               fillColor = ~colorNumeric("YlOrRd", domain = price)(price),
               popup = ~as.character(price))
 ```
+
+Breaking this down:
+- `leaflet(by.zip)` creates a leaflet map object and tells it to refer to `by.zip` for data.
+- `addProviderTiles` draws the map tiles.
+- `addPolygons` draws the shapes, with some "aesthetics" just like ggplot: weight, fillColor, and popup. The main difference is that we specify them as formulas (denoted by the `~` character) instead of just variable names.
 
 # Wrapping Up
 

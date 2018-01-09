@@ -15,16 +15,9 @@ output: html_document
 
 Base R may be slow and arcane, but we'll be going over a set of packages that make R a joy to work with for data wrangling. Collectively known as the Tidyverse, these packages are more or less standard for any practitioner working with R. They provide a clean and idomatic language for manipulating and visualizing data.
 
-## Loading the data
-
-Let's load up the AirBnB data.  Remember to *set the working directory* to the folder with the data in it (one easy to do this is in the Files tab using the "More" drop-down menu).  Then, in a fresh script (or following along in the class script), type and execute:
-
-```{r, echo=FALSE}
-listings = read.csv('../data/listings.csv')
-```
-
 
 ## Loading the libraries
+
 
 First we need to load the packages.  If you did the homework, you already have them installed, but if not (shame!) install them with: `install.packages('tidyr')` and `install.packages('dplyr')`.
 
@@ -35,23 +28,40 @@ library(tidyr)
 library(dplyr)
 ```
 
+## Basic exploration and cleaning
 
-## Some basics
+Let's load up the AirBnB data.  Remember to *set the working directory* to the folder with the data in it (one easy to do this is in the Files tab using the "More" drop-down menu).  Then, in a fresh script (or following along in the class script), type and execute:
+
+```{r, echo=FALSE}
+listings = read.csv('../data/listings.csv')
+```
+
 
 Let's do some basic exploration on the data. How about `select`ing a specific column, and looking at the first few rows:
 ```{r}
-head(select(listings, reviews_per_month))
+head(select(listings, price))
 ```
 
 This is fine, but it's a little awkward having to nest our code like that.  Luckily, there is a nifty operator included with tidyr called the **chaining operator** which looks like `%>%` and serves like a pipeline from one function to another. Specifically: `x %>% f == f(x)`. Now we can instead do this:
 
 ```{r}
-listings %>% select(reviews_per_month) %>% head()
+listings %>% select(price) %>% head()
 ```
 
 which is much, much nicer.  Notice that the chaining operator feeds in the object on its left as the first argument into the function on its right.
 
-Now, let's learn some more verbs.  How about also selecting the name, and `filter`ing out missing entries and low values?
+You might notice that these prices are actually strings. If we want to work with these as numbers, we'll need to convert them. Let's try using `mutate`, which allows us to create new columns -- often by referring to existing ones.
+
+```{r}
+listings %>%
+  mutate(nprice = as.numeric(gsub('\\$|,', '', price))) %>%
+  select(name, price, nprice)
+```
+
+Note that the tidyverse packages generally do not change the dataframe objects they act on. For example, the code above doesn't change `listings`, but instead returns a new dataframe that has the same data as `listings`, plus an extra column.
+
+Now, let's learn some more verbs. How about also selecting the name, and `filter`ing out missing entries and low values?
+
 ```{r}
 listings %>% select(name, reviews_per_month) %>%
   filter(!is.na(reviews_per_month), reviews_per_month > 12)
@@ -64,6 +74,11 @@ How many of those NAs are there?  Let's `count` them:
 listings %>% count(is.na(reviews_per_month))
 ```
 
+
+## Aggregation
+Now, how about a summary statistic, like the average price for a listing? Let's take our clean dataset and `summarize` it to find out.
+
+
 Hmm.  Does it have anything to do with just recent listings?  Let's do a table to `summarize` the number of reviews for an NA entry by showing the average number of reviews:
 ```{r}
 listings %>%
@@ -73,40 +88,6 @@ listings %>%
 
 Ah, so these are just listings without any reviews yet.  That's not alarming.  (**Note to international students:** `summarise` also works!)
 
-Now, how about a summary statistic, like the average price for a listing?
-
-Well, the first thing we need to do is make sure the price is in a numeric form.  We already dealt with this before by creating a new column using the dollar-sign base R syntax.  Let's instead take a tidy R approach and `mutate` the listings data table by adding this new column right in our chain:
-```{r}
-listings %>%
-  mutate(nprice = as.numeric(gsub('\\$|,', '', price))) %>%
-  summarize(avg.price = mean(nprice))
-```
-
-This approach has several advantages over the base R way.  One advantage is we can use the column temporarily, as part of our chain, without affecting the data table that we have loaded into memory.  We can even overwrite the original column if we want to keep the same name.  Another advantage is that we can easily convert/add multiple columns at once, like this:
-
-```{r}
-listings %>%
-  mutate(price = as.numeric(gsub('\\$|,', '', price)),
-         weekly = as.numeric(gsub('\\$|,', '', weekly_price)),
-         monthly = as.numeric(gsub('\\$|,', '', monthly_price))) %>%
-  summarize(avg.price = mean(price),
-            avg.weekly = mean(weekly, na.rm=TRUE),
-            avg.monthly = mean(monthly, na.rm=TRUE))
-```
-
-Here we used the argument `na.rm=TRUE` in `mean`, which just removes any NA values from the mean computation --- we could have also chained another filter command with the same result.
-
-Another advantage is we can create a new column, and then use those new values immediately in another column!  Let's create a new column that is the "weekly price per day" called `weekly_price_per` by dividing the weekly price by 7.  Then let's use that number and the daily price rate to compute the difference between the two (i.e. the discount by taking the weekly rate).  Then we'll look at the average of this discount across all listings.
-```{r}
-listings %>%
-  mutate(price = as.numeric(gsub('\\$|,', '', price)),
-         weekly = as.numeric(gsub('\\$|,', '', weekly_price)),
-         weekly_price_per = weekly / 7,
-         weekly_discount = price - weekly_price_per) %>%
-  summarize(avg_discount = mean(weekly_discount, na.rm=T))
-```
-
-Average discount per day for booking by the week: about 20 bucks!
 
 Let's take a deeper look at prices, and we can make our lives easier by just overwriting that price column with the numeric version and saving it back into our `listings` data frame:
 ```{r}

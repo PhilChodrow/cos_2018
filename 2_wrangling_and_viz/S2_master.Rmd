@@ -83,15 +83,17 @@ Let's filter these out:
 raw_listings %>% filter(!is.na(bedrooms))
 ```
 
-Finally, let's combine all of these to make a clean dataset to work with. We want to make sure our data has a correct price column, no missing bedroom column, and only has a subset of the ~100 columns we started out with. We'll assign it to a dataframe named `listings`.
+Finally, let's combine some of these to make a clean dataset to work with. We want to make sure our data has a correct price column and no missing bedroom or bathroom columns. We'll assign it to a dataframe named `listings`. For convenience, we'll also make a function clean these nasty price columns:
 
 
 ```{r}
+clean_price <- function(price) as.numeric(gsub('\\$|,', '', price))
+
 listings <- raw_listings %>%
-  filter(!is.na(bedrooms)) %>%
-  mutate(price = as.numeric(gsub('\\$|,', '', price))) %>%
-  select(name, price, bedrooms,
-         neighbourhood_cleansed, latitude, longitude, review_scores_rating)
+  filter(!is.na(bedrooms), !is.na(bathrooms)) %>%
+  mutate(price = clean_price(price),
+         weekly_price = clean_price(weekly_price),
+         monthly_price = clean_price(monthly_price))
 ```
 
 
@@ -172,7 +174,7 @@ Feel free to use the internet for help!
 Hint: `cut(x, breaks = quantile(x))` takes a numeric vector `x`, and returns a vector of labels indicating which quartile each element of `x` falls into.
 
 *ANSWER:*
-```{r}
+```{r, exercise-1-1}
 listings %>%
   mutate(price_bin = cut(price, breaks = quantile(price))) %>%
   group_by(bedrooms, price_bin) %>%
@@ -208,27 +210,39 @@ First, make sure you've got `ggplot2` installed (with `install.packages('ggplot2
 library(ggplot2)
 ```
 
+Next, let's use our tidyverse tools to make the dataset we're interested in working with. Let's try grouping listings together if they have the same review score, and take the median within the group. Oh, and just filter out those pesky NAs.
+
+```{r}
+by.bedroom.rating <- listings %>%
+  filter(!is.na(review_scores_rating)) %>%
+  group_by(bedrooms, review_scores_rating) %>%
+  summarize(med.price = median(price), listings = n())
+```
+
 Now, we chain this into the `ggplot` function...
 ```{r}
-listings %>%
-  ggplot(aes(x=review_scores_rating, y=price)) +
+by.bedroom.rating %>%
+  ggplot(aes(x=review_scores_rating, y=med.price)) +
   geom_point()
 ```
 
 Behold: we specify our Data (`listings`), our Aesthetic mapping (`x` and `y` to columns of the data), and our desired Geometry (`geom_point`).  We are gluing each new element together with `+` signs.   Clean, intuitive, and already a little prettier than the Base R version.  But most importantly, this is much more extensible.  Let's see how.
 
-First, let's try grouping listings together if they have the same review score, and take the median within the group, and plot that.  (This is a little weird since the score could take continuous values and we should be binning them... but let's see what happens.)  Oh, and just filter out those pesky NAs.
+**Adding aesthetics**
+Suppose we want to see these points broken out by the number of bedrooms. One way to get that extra dimension is to color these points by the number of bedrooms. How can we do that?
 
 ```{r}
-listings %>%
-  filter(!is.na(review_scores_rating)) %>%
-  group_by(review_scores_rating) %>%
-  summarize(med.price = median(price)) %>%
-  ggplot(aes(x=review_scores_rating, y=med.price)) +
+by.bedroom.rating %>%
+  ggplot(aes(x=review_scores_rating, y=med.price, color = factor(bedrooms))) +
   geom_point()
 ```
 
-Now that is a bit interesting, and definitely easy to see a trend now.
+**Adding layers**
+Layers stack
+
+
+
+
 
 ### Cleaning it up
 
@@ -273,6 +287,9 @@ listings %>%
 ```
 
 That looks pretty good if you ask me!  And, like any decent visualization, it tells a story, and raises interesting questions: there appears to be a correlation between the score of a listing and the price --- is this because higher rated listings can ask a higher price on average? or because when you pay top dollar you trick yourself into believing it was a nicer stay?  What is the best predictor of price, or ratings, or other variables?  We'll explore some of these questions in the next session.
+
+If you're curious, [here is some discussion](https://groups.google.com/forum/#!topic/ggplot2/1TgH-kG5XMA) on how to also extract and plot the estimated parameters of this fit.
+
 
 
 ### Saving a plot
@@ -352,147 +369,38 @@ listings %>%
 A boxplot shows the 25th and 75th percentiles (top and bottom of the box), the 50th percentile or median (thick middle line), the max/min values (top/bottom vertical lines), and outliers (dots).  By simply changing our geometry command, we now see that although the medians were very similar, the distributions were quite different (with Bay Village especially having a "heavy tail" of expensive properties), and there are many extreme outliers ($3000 *a night*?!).
 
 
-### Histograms, Palettes, and Multiple plots
+`stat_ecdf` is another useful tool for visualizing distributions (Naming note: "stats" are essentially geoms that bake in some statistical transformations. There aren't that many of them so we won't worry about that for now). These plot the
 
-Near the beginning of this session we did a histogram of the price in base R, which shows the count of the number of values that occur within sequential intervals (the intervals are called "bins" and the process of counting how many occurrences belong in each interval is called "binning").  We can easily do this with ggplot using `geom_histogram`.  Let's try bin widths of 50 (dollars):
 
-```{r}
-listings %>%
-  ggplot(aes(x=price)) +
-  geom_histogram(binwidth=50)
-```
-
-This is okay but let's trim off those outliers, clean up the colors, and add labels.  We also want to make sure each bar is `centered` in the middle of the interval, which we expect to be 0-50, 51-100, etc.  We can do this by setting the `center=` argument in `geom_histogram`, like so:
-
-```{r}
-listings %>%
-  filter(price < 500) %>%
-  ggplot(aes(x=price)) +
-  geom_histogram(binwidth=50, center=25, fill='cyan', color='black') +
-  labs(x='Price', y='# Listings')
-```
-
-(Reality-check it with `listings %>% filter(price <= 50) %>% count()`.)  Another way to represent this information is using lines (instead of bars):
-
-```{r}
-listings %>%
-  filter(price < 500) %>%
-  ggplot(aes(x=price)) +
-  geom_freqpoly(binwidth=50, color='black') +
-  labs(x='Price', y='# Listings')
-```
-
-Let's say we want to compare this distribution of price for different room types.  We can set the fill color of the histogram to map to the room type:
-
-```{r}
-listings %>%
-  filter(price < 500) %>%
-  ggplot(aes(x=price, fill=room_type)) +
-  geom_histogram(binwidth=50, center=25) +
-  labs(x='Price', y='# Listings', fill='Room type')
-```
-
-Hmmm, this is a little hard to interpret because there are very different numbers of listings for the different types of room. It's also stacked, not overlaid.
-
-We can overlay the bars by setting the `position=` argument to `identity` (i.e. don't change the position of any bars), although we should then also add in a little transparency.  We would also like to "normalize" the values --- divide each bar height by the total sum of all the bars --- so that each bar represents the fraction of listings with that price range, instead of the count.  We can do that with a special mapping in `aes` to make `y` a "density", like so:
-
-```{r}
-listings %>%
-  filter(price < 500) %>%
-  ggplot(aes(x=price, y=..density.., fill=room_type)) +
-  geom_histogram(binwidth=50, center=25, position='identity', alpha=0.5, color='black') +
-  labs(x='Price', y='Frac. of Listings', fill='Room type')
-```
-
-Maybe we'd prefer to have the histogram bars adjacent, not stacked, so we'll tell `geom_histogram` to set each bar's position by `dodge`ing the others:
-
-```{r}
-listings %>%
-  filter(price < 500) %>%
-  ggplot(aes(x=price, y=..density.., fill=room_type)) +
-  geom_histogram(binwidth=50, center=25, position='dodge', color='black') +
-  labs(x='Price', y='Frac. of Listings', fill='Room type')
-```
-
-Now I'm not crazy about any of this since the default color scheme (or **palette**) involves green and red, and I am red-green colorblind.  Woe is me and my fellow colorblind peoples.  But this is just a matter of specifying our palette, and fortunately there is a colorblind-friendly palette which we can load into our session as a list of hexadecimal color codes:
-
-```{r}
-cbbPalette <- c("#E69F00", "#56B4E9", "#009E73",
-               "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
-```
-
-(There are dozens of palettes, find more [here](http://www.cookbook-r.com/Graphs/Colors_(ggplot2)/).)  Now we can tack on the thematic command `scale_fill_manual` which will `manual`ly set the `values` of our `fill` from this palette (i.e. list of colors), and we get:
-```{r}
-listings %>%
-  filter(price < 500) %>%
-  ggplot(aes(x=price, y=..density.., fill=room_type)) +
-  geom_histogram(binwidth=50, center=25, position='dodge', color='black') +
-  labs(x='Price', y='Frac. of Listings', fill='Room type') +
-  scale_fill_manual(values=cbbPalette)
-```
-
-Ahhhh.  There are many other ways of setting colors (for fill or lines) this way, even without specifying a custom palette: gradient valued, continuous, etc.  You can check them out in the help by typing `?scale_fill_` or `?scale_color_` and selecting from the inline menu.
-
-This is still a little hard to read because the bars are right next to each other ... maybe we could try `geom_freqpoly` again?
-
-```{r}
-listings %>%
-  filter(price < 500) %>%
-  ggplot(aes(x=price, y=..density.., color=room_type)) +
-  geom_freqpoly(binwidth=50) +
-  labs(x='Price', y='Frac. of Listings', color='Room type') +
-  scale_color_manual(values=cbbPalette)
-```
-
-Compare the changes we made to the aesthetic mapping and palette command from the previous plot to this one --- we are mapping the palette to line color, not fill, so we had to make a few tweaks.
-
-Importantly, it is now easy to see that "shared room" listings run cheaper more often than other room types, and almost all the pricey rooms are "entire home/apt".  Nothing surprising here, but good to be able to check our intuitions in the actual data.
-
-## Statistical fanciness
-
-The only major feature of ggplot we have not yet covered is the *statistical transformation* ability.  This allows you to slap a statistical treatment on a base visualization --- for example, a linear regression over a scatter plot, or a normal distribution over a histogram.  We will show a few examples of this feature, but it is an extremely powerful addition and we leave deeper treatment for future sessions.
-
-Let's fit a trend line to that scatter plot of average price vs review score by adding a `geom_smooth` call.
-
-```{r}
-listings %>%
-  filter(!is.na(review_scores_rating)) %>%
-  group_by(review_scores_rating) %>%
-  summarize(med.price = median(price),
-            num = n()) %>%
-  ggplot(aes(x=review_scores_rating, y=med.price, size=num)) +
-  geom_point(color='blue', alpha=0.5) +
-  labs(x='Score', y='Median Price', size='# Reviews',
-       title='Median Price Trend by Review Score') +
-  geom_smooth()
-```
-
-Note that all we did was take our previous plot commands, and added the `geom_smooth` command.  The default is to use a "loess" fit (locally weighted scatterplot smoothing), which is a bit overcomplicated for our data.  We can instead specify the model, for example to just fit a line (linear regression) we say
-
-```{r}
-listings %>%
-  filter(!is.na(review_scores_rating)) %>%
-  group_by(review_scores_rating) %>%
-  summarize(med.price = median(price),
-            num = n()) %>%
-  ggplot(aes(x=review_scores_rating, y=med.price, size=num)) +
-  geom_point(color='blue', alpha=0.5) +
-  labs(x='Score', y='Median Price', size='# Reviews',
-       title='Median Price Trend by Review Score') +
-  geom_smooth(method='lm')
-```
-
-If you're curious, [here is some discussion](https://groups.google.com/forum/#!topic/ggplot2/1TgH-kG5XMA) on how to also extract and plot the estimated parameters of this fit.
-
-There is also `stat_smooth` and others, and endless ways to specify the complexity, paramaterization, and visualization properties of the model --- we will cover more of this in the next two sessions.
 
 
 # ggplot Exercises
 
+Let's run an example of what we just learned by making a crazy, **8-dimensional** plot! Your goal is to display the relationship between (1) price and (2) cleaning fee by (3) bedrooms, (4) bathrooms, (5) bedrooms, (6) property_type
+
+
+You can decide how to do this.
+
+Note that this isn't always actually a good idea. Extra information clutters a plot, and most of the available dimensions aren't as easy to read as x, y, and color.
+
+
+**ANSWER**
+```{r}
+listings %>%
+  mutate(cleaning_fee = as.numeric(gsub('\\$|,', '', cleaning_fee))) %>%
+  ggplot(aes(cleaning_fee, price,
+             color = room_type,
+             shape = is.na(review_scores_rating))) +
+  geom_point() +
+  facet_grid(cancellation_policy ~ instant_bookable)
+```
+
+
+
 [(back to top)](#agenda)
 
 **Exercise 1. Multi-`facet`ed.**  Besides changing colors, another easy way to display different groups of plots is using facets, a simple addition to the end of our `ggplot` chain.  For example, using the price by room type example, let's plot each histogram in its own facet:
-```{r}
+```{r exercise-2-1a}
 listings %>%
   filter(price < 500) %>%
   ggplot(aes(x=price, y=..density.., fill=room_type)) +
@@ -505,7 +413,7 @@ listings %>%
 If we interpret the facet layout as an x-y axis,the `.~room_type` formula means layout nothing (`.`) on the y-axis, against `room_type` on the x-axis.  Sometimes we have too many facets to fit on one line, and we want to let ggplot do the work of wrapping them in a nice way.  For this we can use `facet_wrap()`.  Try plotting the distribution of price, faceted by how many the listing accommodates, using `facet_wrap()`.  Note that now we can't have anything on the y-axis (since we are just wrapping a long line of x-axis facets), so we drop the period from the `~` syntax.
 
 *ANSWER:*
-```{r}
+```{r exercise-2-2}
 listings %>%
   filter(price < 500) %>%
   ggplot(aes(x=price, y=..density..)) +
@@ -516,10 +424,10 @@ listings %>%
 
 Note that if you tried to use the colorblind palette again, you probably ran out of colors and ggplot complained!  (You can use a larger palette, a gradient palette, ...)
 
-**Exercise 2. `geom_tile`**  A useful geometry for displaying heatmaps in `ggplot` is `geom_tile`.  This is typically used when we have data grouped by two different variables, and so we need visualize in 2d.  For example, in an exercise for the last section we looked at median price grouped by # bedrooms and bathrooms.  Try visualizing this table with the `geom_tile` geometry.
+**Exercise 2. `geom_tile`**  A useful geometry for displaying heatmaps in `ggplot` is `geom_tile`.  This is typically used when we have data grouped by two different variables, and so we need visualize in 2d.  For example, try using `geom_tile` to visualize median price grouped by # bedrooms and bathrooms.
 
 *ANSWER:*
-```{r}
+```{r exercise-2-2a}
 listings %>%
   group_by(bedrooms, bathrooms) %>%
   summarize(med = median(price)) %>%
@@ -528,7 +436,7 @@ listings %>%
 ```
 
 BONUS: We can enforce that the color scale runs between two colors by adjusting a `scale_fill_gradient` theme, like this:
-```{r}
+```{r exercise-2-2b}
 listings %>%
   group_by(bedrooms, bathrooms) %>%
   summarize(med = median(price)) %>%
@@ -538,49 +446,6 @@ listings %>%
   theme_minimal() +
   labs(x='Bedrooms', y='Bathrooms', fill='Median price')
 ```
-
-
-
-**Exercise 3. Getting Dodgy.**  The earlier example where we plotted the histograms grouped by room type is a little hard to read since each set of bars is right next to each other, and maybe we didn't like the `geom_freqpoly` approach.  Another way would be to put a little separation between each threesome of bars.  We can do these kind of tweaks by adjusting the `position=` argument in the histogram geometry.  Instead of just `position='dodge'`, try reproducing the plot using `position=position_dodge(...)`.  (Check out the documentation by typing `?position_dodge` into the console.)
-
-*ANSWER:*
-```{r}
-listings %>%
-  filter(price < 500) %>%
-  ggplot(aes(x=price, y=..density.., fill=room_type)) +
-  geom_histogram(binwidth=50, center=25, position=position_dodge(width=35), color='black') +
-  labs(x='Price', y='Frac. of Listings', fill='Room type') +
-  scale_fill_manual(values=cbbPalette)
-```
-
-This is still a little awkward having the bars overlap though, and also misleading to have separation between bar when the bins are continous...  check out and try a few of the other position adjustments (for example in the "See Also" of the documentation for position_dodge).
-
-**Exercise 4. Count em up: `geom_count`.**  A common desire in plotting scatters is to have points which occur more often to appear larger (instead of just plotting them on top of each other).  ggplot provides this functionality built-in with `geom_count`.  Try plotting our price vs review score scatter using `geom_count` instead of `geom_point`.  Don't group by score, just plot every listing.  Try also playing around with alpha settings, and fitting a linear regression.
-
-*ANSWER:*
-```{r}
-listings %>%
-  filter(!is.na(review_scores_rating), number_of_reviews > 10) %>%
-  ggplot(aes(x=review_scores_rating, y=price)) +
-  geom_count(color='blue', alpha=0.2) +
-  geom_smooth(method='lm')
-```
-
-
-**(Optional) The Director's Cut.**  Recall we weren't crazy about the way we grouped by a continuous variable in that price vs. review score scatter plot earlier.  We could be a little more precise by doing a histogram simultaneously on price AND score, and plotting the median of each 2d bin.  For more on this, see "Additional Reading" below.  Another way to get around this problem would be to just create a new variable with an approximate, or binned, score rating, like low/medium/high (giving us a factor, instead of a continuous variable) by `cut`ting the continuous variable into bins.
-
-For example, with score, we could create a column `listings$scorecut = cut(listings$review_scores_rating, breaks=3)` that would evenly divide all scores into 3 categories, or cuts.  In our case, we might want to cut the scores by every 5, so we would specify `breaks=seq(0,100,by=5)` which means `breaks=[0,5,10,...,100]`.  Let's try piping that in instead:
-```{r}
-listings %>%
-  filter(!is.na(review_scores_rating)) %>%
-  mutate(scorecut = cut(review_scores_rating, breaks=seq(0,100,by=5))) %>%
-  group_by(scorecut) %>%
-  summarize(medprice = median(price)) %>%
-  ggplot(aes(x=scorecut, y=medprice)) +
-  geom_point(color='blue')
-```
-
-Perfect --- we still see the trend (possibly clearer?) and we are not worried about weird effects from small bins.
 
 
 # Going Wider and Deeper
@@ -607,7 +472,7 @@ Simple, right?  Yet a lot of data isn't formed that way.  Consider the following
 
 This looks completely acceptable, and is a compact way of representing the information.  However, if we are treating "quarterly earnings" as the observed value, then this format doesn't really follow the tidy philosophy: notice that there are multiple prices (observations) on a row, and there seems to redundancy in the column headers...
 
-In the tidyverse, we'd rather have the table represent "quarterly earning," with each row giving a single observation of a single quarter for a single company, and columns representing the company, quarter, and earning.  Something like this:
+In the tidyverse, we'd rather have the table represent "quarterly earnings," with each row giving a single observation of a single quarter for a single company, and columns representing the company, quarter, and earning.  Something like this:
 
 |Company  | Quarter |  Earnings  |
 |---------|---------|------------|
@@ -624,14 +489,8 @@ Think about our `listings` dataset.  Earlier, we plotted the distribution of dai
 
 But what if we want to compare the distributions of daily, weekly, and monthly prices?  Now we have a similar situation to the quarterly earnings example from before: now we want each row to have single price, and have one of the columns specify which kind of price we're talking about.
 
-To gather up **wide** data into a **long** format, we can use the `gather` function.  This needs us to specify the desired new columns in standardized form, and the input columns to create those new ones.  First let's make sure our listings data has the converted prices:
-```{r}
-listings <- listings %>%
-  mutate_at(c('price', 'weekly_price', 'monthly_price'),
-            funs(as.numeric(gsub('\\$|,', '', .))))
-```
+To gather up **wide** data into a **long** format, we can use the `gather` function.  This needs us to specify the desired new columns in standardized form, and the input columns to create those new ones:
 
-Now let's take a look at what `gather` looks like:
 ```{r}
 long.price <- listings %>%
   select(id, name, price, weekly_price, monthly_price) %>%
@@ -641,11 +500,19 @@ long.price <- listings %>%
 long.price %>% head()  # take a peek
 ```
 
-Cool.  Notice that we left in the unique ID for each listing --- this will help us keep track of how many unique listings we have, since the names are not necessarily unique, and are a little harder to deal with.  Also notice that we filtered for NAs, but we did it *after* the `gather` command.  Otherwise we would remove a whole listing even if it was just missing a weekly or monthly price.
+Let's break down what gather does:
+- The first two arguments are names of columns we want to create in the new, long dataframe.
+  - `freq` is the "key": the name of each wide column we're collapsing.
+  - `tprice` is the "value": the values of those wide columns.
+- The following arguments `price`, `weekly_price`, and `monthly_price` are the wide columns we want to collapse into long format.
+- Any columns we don't pass to gather (here, `id` and `name`) are copied across all the long rows. Typically, you can use them to identify which wide row each long row corresponds to.
 
-Now this `head` command is only showing us the daily prices but if we don't trust that it worked we can always open it up, or check something like `long.price %>% filter(freq=='weekly_price') %>% head()`
 
-To spread it back out into the original wide format, we can use `spread`
+**Quick exercise:** What's the gather command for the quarterly earnings table above?
+**Answer:** `gather(Quarter, Earnings, Qtr.1, Qtr.2, Qtr.3, Qtr.4)`
+
+
+To spread it back out into the original wide format, we can use `spread`. We tell spread the "key" and "value" columns, and it turns long data into wide data.
 ```{r}
 long.price %>%
   spread(freq, tprice) %>%
@@ -662,12 +529,12 @@ But with the long format data, we can simply specify the color of our line with 
 ```{r}
 long.price %>%
   filter(tprice < 1000) %>%
-  ggplot(aes(x=tprice, y=..density.., color=freq)) +
-  geom_freqpoly(binwidth=50, size=2, center=25) +
-  scale_color_manual(values=cbbPalette)
+  ggplot(aes(x=tprice, color=freq)) +
+  stat_ecdf()
 ```
 
 There are lots of times we need this little "trick," so you should get comfortable with it --- sometimes it might even be easiest to just chain it in.  Let's plot a bar chart showing the counts of listings with different numbers of bedrooms and bathrooms (we'll filter out half-rooms just to help clean up the plot):
+
 ```{r}
 listings %>%
   select('Bedrooms'=bedrooms, 'Bathrooms'=bathrooms) %>%
@@ -675,33 +542,7 @@ listings %>%
   filter(!is.na(number), number %% 1 == 0) %>%
   ggplot(aes(x=number, fill=type)) +
   geom_bar(stat='count', position='dodge', color='black') +
-  scale_fill_manual(values=cbbPalette) +
   labs(x='# Rooms', y='# Listings', fill='Room type')
-```
-
-Or group by neighborhood and listing type (which will give us a tidy formatted table), get the median daily price, and plot tiles shaded according to that price value using `geom_tile`:
-```{r}
-listings %>%
-  group_by(neighbourhood_cleansed, room_type) %>%
-  summarize(med.price = mean(price)) %>%
-  ggplot(aes(x=reorder(neighbourhood_cleansed, -med.price), y=room_type, fill=med.price)) +
-  geom_tile() +
-  scale_fill_gradient(low = "white", high = "steelblue") +
-  theme_minimal() +
-  theme(axis.text.x=element_text(angle=60, hjust=1)) +
-  labs(x='', y='', fill='Median price')
-```
-
-which shows that "private room" trends and "entire home" trends are not identical: why is Bay Village a high-end entire apartment location but low-end private rooms?  (Small rooms?)  Why are the shared rooms in the South End so much?
-
-Or spread the same data out into a wide format for easy tabular viewing:
-```{r}
-listings %>%
-  group_by(neighbourhood_cleansed, room_type) %>%
-  summarize(med.price = mean(price)) %>%
-  filter(neighbourhood_cleansed %in% c('Beacon Hill', 'Downtown', 'Fenway',
-                                       'Back Bay', 'West End')) %>%
-  spread(room_type, med.price)
 ```
 
 
@@ -784,6 +625,9 @@ rooms.prices %>%
 This allows us to easily use the `room.type` column (created in the gather before) to set our fill color and facet layout, but still have access to all the price information from the original dataset.  This visualization shows us that there is a trend of increasing price with increasing number of bathrooms and bedrooms, but it is not a strict one, and seems to taper off at around 2 bedrooms for example.
 
 In the next sessions, we will need data from the `listings.csv` file and the other datasets `calendar.csv` and `reviews.csv`, so we will use these joins again.
+
+## Exercises
+
 
 # Bonus: Visualizing Map Data
 

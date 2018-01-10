@@ -1,6 +1,11 @@
 ---
 title: "Session 2: Data Wrangling and Visualization in R"
-output: html_document
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    df_print: tibble
+    self_contained: true
 ---
 
 # Agenda
@@ -174,7 +179,7 @@ Feel free to use the internet for help!
 Hint: `cut(x, breaks = quantile(x))` takes a numeric vector `x`, and returns a vector of labels indicating which quartile each element of `x` falls into.
 
 *ANSWER:*
-```{r, exercise-1-1}
+```{r exercise-1-1}
 listings %>%
   mutate(price_bin = cut(price, breaks = quantile(price))) %>%
   group_by(bedrooms, price_bin) %>%
@@ -237,12 +242,8 @@ by.bedroom.rating %>%
   geom_point()
 ```
 
-**Adding layers**
-Layers stack
-
-
-
-
+<!-- **Adding layers** -->
+<!-- Layers stack -->
 
 ### Cleaning it up
 
@@ -289,7 +290,6 @@ listings %>%
 That looks pretty good if you ask me!  And, like any decent visualization, it tells a story, and raises interesting questions: there appears to be a correlation between the score of a listing and the price --- is this because higher rated listings can ask a higher price on average? or because when you pay top dollar you trick yourself into believing it was a nicer stay?  What is the best predictor of price, or ratings, or other variables?  We'll explore some of these questions in the next session.
 
 If you're curious, [here is some discussion](https://groups.google.com/forum/#!topic/ggplot2/1TgH-kG5XMA) on how to also extract and plot the estimated parameters of this fit.
-
 
 
 ### Saving a plot
@@ -376,28 +376,26 @@ A boxplot shows the 25th and 75th percentiles (top and bottom of the box), the 5
 
 # ggplot Exercises
 
-Let's run an example of what we just learned by making a crazy, **8-dimensional** plot! Your goal is to display the relationship between (1) price and (2) cleaning fee by (3) bedrooms, (4) bathrooms, (5) bedrooms, (6) property_type
-
-
-You can decide how to do this.
-
-Note that this isn't always actually a good idea. Extra information clutters a plot, and most of the available dimensions aren't as easy to read as x, y, and color.
-
-
-**ANSWER**
-```{r}
-listings %>%
-  mutate(cleaning_fee = as.numeric(gsub('\\$|,', '', cleaning_fee))) %>%
-  ggplot(aes(cleaning_fee, price,
-             color = room_type,
-             shape = is.na(review_scores_rating))) +
-  geom_point() +
-  facet_grid(cancellation_policy ~ instant_bookable)
-```
-
-
-
 [(back to top)](#agenda)
+
+<!-- Let's run an example of what we just learned by making a crazy, **8-dimensional** plot! Your goal is to display the relationship between (1) price and (2) cleaning fee by (3) bedrooms, (4) bathrooms, (5) bedrooms, (6) property_type -->
+
+
+<!-- You can decide how to do this. -->
+
+<!-- Note that this isn't always actually a good idea. Extra information clutters a plot, and most of the available dimensions aren't as easy to read as x, y, and color. -->
+
+
+<!-- **ANSWER**
+<!-- ```{r} -->
+<!-- listings %>% -->
+<!--   mutate(cleaning_fee = as.numeric(gsub('\\$|,', '', cleaning_fee))) %>% -->
+<!--   ggplot(aes(cleaning_fee, price, -->
+<!--              color = room_type, -->
+<!--              shape = is.na(review_scores_rating))) + -->
+<!--   geom_point() + -->
+<!--   facet_grid(cancellation_policy ~ instant_bookable) -->
+<!-- ``` -->
 
 **Exercise 1. Multi-`facet`ed.**  Besides changing colors, another easy way to display different groups of plots is using facets, a simple addition to the end of our `ggplot` chain.  For example, using the price by room type example, let's plot each histogram in its own facet:
 ```{r exercise-2-1a}
@@ -406,7 +404,6 @@ listings %>%
   ggplot(aes(x=price, y=..density.., fill=room_type)) +
   geom_histogram(binwidth=50, center=25, position='dodge', color='black') +
   labs(x='Price', y='Frac. of Listings', fill='Room type') +
-  scale_fill_manual(values=cbbPalette) +
   facet_grid(.~room_type)
 ```
 
@@ -641,6 +638,8 @@ Let's say we want to plot average listing prices by zip code.
 First, let's grab some zip code shapes from [Analyze Boston](http://bostonopendata-boston.opendata.arcgis.com/datasets/53ea466a189b4f43b3dfb7b38fa7f3b6_1). Unzip this in your working directory and load it into a dataframe:
 
 ```{r}
+library(sf)
+library(leaflet)
 shp <- read_sf('shape/ZIP_Codes.shp')
 ```
 

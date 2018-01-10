@@ -1,3 +1,5 @@
+all: S2_master.html S2_script.R S2_script_full.R
+
 clean:
 	rm S2_master.html S2_student.Rmd S2_script.R S2_script_full.R
 

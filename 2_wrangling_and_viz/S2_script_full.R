@@ -5,7 +5,7 @@
 #'     toc: true
 #'     toc_float: true
 #'     df_print: tibble
-#'     self_contained: true
+#'     self_contained: false
 #' ---
 #' 
 #' # Agenda
@@ -203,10 +203,6 @@ listings %>%
 #' - **Aes**thetics: The dimensions we want to plot, e.g. x, y, color, size, shape.
 #' - **Geom**etry:  The specific visualization shape. Line plot, scatter plot, bar plot, etc.
 #' 
-#' A couple less important components:
-#' - **Stat**istical transformation.  How should the data be transformed or aggregated before visualizing?
-#' - **Theme**.  This is like flavoring: how do we want the chart to look and feel?
-#' 
 #' ## Example
 #' 
 #' First, make sure you've got `ggplot2` installed (with `install.packages('ggplot2')`) and then load it into your session:
@@ -233,73 +229,40 @@ by.bedroom.rating %>%
 #' 
 #' Behold: we specify our Data (`listings`), our Aesthetic mapping (`x` and `y` to columns of the data), and our desired Geometry (`geom_point`).  We are gluing each new element together with `+` signs.   Clean, intuitive, and already a little prettier than the Base R version.  But most importantly, this is much more extensible.  Let's see how.
 #' 
-#' **Adding aesthetics**
-#' Suppose we want to see these points broken out by the number of bedrooms. One way to get that extra dimension is to color these points by the number of bedrooms. How can we do that?
+#' **Adding aesthetics:** Suppose we want to see these points broken out by the number of bedrooms. One way to get that extra dimension is to color these points by the number of bedrooms. How can we do that?
 #' 
 ## ------------------------------------------------------------------------
 by.bedroom.rating %>%
-  ggplot(aes(x=review_scores_rating, y=med.price, color = factor(bedrooms))) +
+  ggplot(aes(x=review_scores_rating, y=med.price, color=factor(bedrooms))) +
   geom_point()
 
 #' 
-#' <!-- **Adding layers** -->
-#' <!-- Layers stack -->
+#' Note that `factor` essentially tells ggplot to treat `bedrooms` as categorical rather than numeric.
 #' 
-#' ### Cleaning it up
-#' 
-#' Let's clean up this chart by coloring the points blue and customizing the axis labels:
+#' **Adding geoms:** We can also keep adding additional geoms to the plot to visualize the same data in different ways. In the following example, we throw in a linear best-fit line for each bedroom class. Note that the same x, y, and color aesthetics propagate through all the geoms.
 #' 
 ## ------------------------------------------------------------------------
-listings %>%
-  filter(!is.na(review_scores_rating)) %>%
-  group_by(review_scores_rating) %>%
-  summarize(med.price = median(price)) %>%
-  ggplot(aes(x=review_scores_rating, y=med.price)) +
-  geom_point(color='blue') +
-  labs(x='Score', y='Median Price', title='Listing Price Trend by Review Score')
+by.bedroom.rating %>%
+  ggplot(aes(x=review_scores_rating, y=med.price, color=factor(bedrooms))) +
+  geom_point() +
+  geom_smooth(method = lm)
 
 #' 
-#' That's a little better.  (**Note to international students:** `colour` also works!)  Maybe we are worried that some of those dots represent only a few listings, and we want to visually see where the center of mass is for this trend.  Let's add back in that `n()` count from before to our summarize function, and add in an additional aesthetic mapping to govern the *size* of our geometry:
+#' **Theming:** We can change the plot's appearance simply by tacking themes onto the end of the ggplot. As a simple example:
+#' 
 #' 
 ## ------------------------------------------------------------------------
-listings %>%
-  filter(!is.na(review_scores_rating)) %>%
-  group_by(review_scores_rating) %>%
-  summarize(med.price = median(price),
-            num = n()) %>%
-  ggplot(aes(x=review_scores_rating, y=med.price, size=num)) +
-  geom_point(color='blue') +
-  labs(x='Score', y='Median Price', title='Median Price Trend by Review Score')
+by.bedroom.rating %>%
+  ggplot(aes(x=review_scores_rating, y=med.price, color=factor(bedrooms))) +
+  geom_point() +
+  theme_bw() +
+  labs(x='Score', y='Median Price', title='Listing Price by Review Score')
 
 #' 
-#' Those blue dots got a little crowded.  Let's put in some transparency by adjusting the alpha level in our geometry, and change the background to white by changing our theme.  Oh, and let's relabel that legend (notice we specify the labels for each aesthetic mapping, so `size=` will set the legend title, since the legend shows the size mapping).
 #' 
-## ------------------------------------------------------------------------
-listings %>%
-  filter(!is.na(review_scores_rating)) %>%
-  group_by(review_scores_rating) %>%
-  summarize(med.price = median(price),
-            num = n()) %>%
-  ggplot(aes(x=review_scores_rating, y=med.price, size=num)) +
-  geom_point(color='blue', alpha=0.5) +
-  labs(x='Score', y='Median Price', size='# Reviews',
-       title='Median Price Trend by Review Score') +
-  theme_bw()
-
+#' ## Other geometries
 #' 
-#' That looks pretty good if you ask me!  And, like any decent visualization, it tells a story, and raises interesting questions: there appears to be a correlation between the score of a listing and the price --- is this because higher rated listings can ask a higher price on average? or because when you pay top dollar you trick yourself into believing it was a nicer stay?  What is the best predictor of price, or ratings, or other variables?  We'll explore some of these questions in the next session.
-#' 
-#' If you're curious, [here is some discussion](https://groups.google.com/forum/#!topic/ggplot2/1TgH-kG5XMA) on how to also extract and plot the estimated parameters of this fit.
-#' 
-#' 
-#' ### Saving a plot
-#' 
-#' By the way, you can flip back through all the plots you've created in RStudio using the navigation arrows, and it's also always a good idea to "Zoom" in on plots.
-#' 
-#' Also, when you finally get one you like, you can "Export" it to a PDF (recommended), image, or just to the clipboard.  Another way to save a plot is to use `ggsave()`, which saves the last plot by default, for example: `ggsave('price_vs_score.pdf')`.
-#' 
-#' 
-#' ## Other geometries: Line plots, Box plots, and Bars
+#' ### Box Plots
 #' 
 #' We will now quickly run through a few of the other geometry options available, but truly, we don't need to spend a lot of time here since each follows the same grammar as before --- the beauty of ggplot! Note that geoms are stackable -- we can just keep adding them on top of each other.
 #' 
@@ -311,18 +274,7 @@ by.neighbor <- listings %>%
   summarize(med.price = median(price))
 
 #' 
-#' We've already seen `geom_point`, now let's try now adding on `geom_line`:
-#' 
-## ------------------------------------------------------------------------
-by.neighbor %>%
-  ggplot(aes(x=neighbourhood_cleansed, y=med.price)) +
-  geom_point() +
-  geom_line(group=1)
-
-#' 
-#' This is misleading, since it falsely implies continuity of price between neighborhoods based on the arbitrary alphabetical ordering.  Also, because our `x` is not a continuous variable, but a list of neighborhoods, `geom_line` thinks the neighborhoods are categories that each need their own line --- so we had to specify `group=1` to group everything into one line.
-#' 
-#' So we've seen a line, but its not appropriate for our visualization purpose here.  Let's switch to a bar chart, i.e. `geom_bar`.  Oh, and let's rotate the labels on the x-axis so we can read them:
+#' Let's switch to a bar chart, i.e. `geom_bar`.  Oh, and let's rotate the labels on the x-axis so we can read them:
 #' 
 ## ------------------------------------------------------------------------
 by.neighbor %>%
@@ -355,7 +307,8 @@ by.neighbor %>%
 #' 
 #' - What is the distribution of prices in some of these neighborhoods? -- we have tried to take care of outliers by using the median, but we still have a hard time getting a feel for a neighborhood with just a single number.
 #' 
-#' Toward the first two observations/questions, we'll see how to incorporate maps into our visualizations in Session 2 and 3, and we'll see some ways to approach "time series" questions in Session 3.
+#' 
+#' ### Plotting Distributions
 #' 
 #' For now, let's pick out a few of these high end neighborhoods and plot a more detailed view of the distribution of price using `geom_boxplot`.  We also need to pipe in the full dataset now so we have the full price information, not just the summary info.
 ## ------------------------------------------------------------------------
@@ -368,37 +321,27 @@ listings %>%
 #' 
 #' A boxplot shows the 25th and 75th percentiles (top and bottom of the box), the 50th percentile or median (thick middle line), the max/min values (top/bottom vertical lines), and outliers (dots).  By simply changing our geometry command, we now see that although the medians were very similar, the distributions were quite different (with Bay Village especially having a "heavy tail" of expensive properties), and there are many extreme outliers ($3000 *a night*?!).
 #' 
+#' `stat_ecdf` is another useful tool for visualizing distributions (Naming note: "stats" are essentially geoms that bake in some statistical transformations. There aren't that many of them so we won't worry about that for now). `stat_ecdf` plots the cumulative distribution of (i.e. percentiles vs. values) of vectors, which gives you a lot more information about the distribution at the expense of being a bit harder to read.
 #' 
-#' `stat_ecdf` is another useful tool for visualizing distributions (Naming note: "stats" are essentially geoms that bake in some statistical transformations. There aren't that many of them so we won't worry about that for now). These plot the
+#' Let's plot the distribution of price by number of bedrooms, and use `coord_cartesian` to limit the x-axis of the plot.
 #' 
+## ------------------------------------------------------------------------
+listings %>%
+  ggplot(aes(price, color=factor(bedrooms))) +
+  stat_ecdf() +
+  coord_cartesian(xlim = c(0, 1000))
+
 #' 
+#' Couple of interesting findings here:
 #' 
+#' - Prices cluster around multiples of $50 (look for the vertical lines). Maybe people should be differentiating on price more!
+#' - Low-end zero-bedroom units are cheaper than low-end one-bedroom units, but one-bedroom units are cheaper at the high end. Maybe there are different types of zero-bedroom units?
 #' 
-#' # ggplot Exercises
+#' ## Tips and tricks
 #' 
-#' [(back to top)](#agenda)
-#' 
-#' <!-- Let's run an example of what we just learned by making a crazy, **8-dimensional** plot! Your goal is to display the relationship between (1) price and (2) cleaning fee by (3) bedrooms, (4) bathrooms, (5) bedrooms, (6) property_type -->
-#' 
-#' 
-#' <!-- You can decide how to do this. -->
-#' 
-#' <!-- Note that this isn't always actually a good idea. Extra information clutters a plot, and most of the available dimensions aren't as easy to read as x, y, and color. -->
-#' 
-#' 
-#' <!-- **ANSWER**
-#' <!-- ```{r} -->
-#' <!-- listings %>% -->
-#' <!--   mutate(cleaning_fee = as.numeric(gsub('\\$|,', '', cleaning_fee))) %>% -->
-#' <!--   ggplot(aes(cleaning_fee, price, -->
-#' <!--              color = room_type, -->
-#' <!--              shape = is.na(review_scores_rating))) + -->
-#' <!--   geom_point() + -->
-#' <!--   facet_grid(cancellation_policy ~ instant_bookable) -->
-#' <!-- ``` -->
-#' 
-#' **Exercise 1. Multi-`facet`ed.**  Besides changing colors, another easy way to display different groups of plots is using facets, a simple addition to the end of our `ggplot` chain.  For example, using the price by room type example, let's plot each histogram in its own facet:
-## ----exercise-2-1a-------------------------------------------------------
+#' ### Facetting
+#' Need a couple extra dimensions in your plot? Try facetting, i.e. breaking out your plot into subplots by some variable(s). It's a simple addition to the end of our `ggplot` chain.  For example, using the price by room type example, let's plot each histogram in its own facet:
+## ------------------------------------------------------------------------
 listings %>%
   filter(price < 500) %>%
   ggplot(aes(x=price, y=..density.., fill=room_type)) +
@@ -410,7 +353,7 @@ listings %>%
 #' If we interpret the facet layout as an x-y axis,the `.~room_type` formula means layout nothing (`.`) on the y-axis, against `room_type` on the x-axis.  Sometimes we have too many facets to fit on one line, and we want to let ggplot do the work of wrapping them in a nice way.  For this we can use `facet_wrap()`.  Try plotting the distribution of price, faceted by how many the listing accommodates, using `facet_wrap()`.  Note that now we can't have anything on the y-axis (since we are just wrapping a long line of x-axis facets), so we drop the period from the `~` syntax.
 #' 
 #' *ANSWER:*
-## ----exercise-2-2--------------------------------------------------------
+## ------------------------------------------------------------------------
 listings %>%
   filter(price < 500) %>%
   ggplot(aes(x=price, y=..density..)) +
@@ -419,7 +362,42 @@ listings %>%
   facet_wrap(~accommodates)
 
 #' 
-#' Note that if you tried to use the colorblind palette again, you probably ran out of colors and ggplot complained!  (You can use a larger palette, a gradient palette, ...)
+#' ### Saving a plot
+#' 
+#' By the way, you can flip back through all the plots you've created in RStudio using the navigation arrows, and it's also always a good idea to "Zoom" in on plots.
+#' 
+#' Also, when you finally get one you like, you can "Export" it to a PDF (recommended), image, or just to the clipboard.  Another way to save a plot is to use `ggsave()`, which saves the last plot by default, for example: `ggsave('price_vs_score.pdf')`.
+#' 
+#' 
+#' # ggplot Exercises
+#' 
+#' [(back to top)](#agenda)
+#' 
+#' **Exercise 1.** Let's run an example of what we just learned by making a crazy, _7-dimensional_ plot! We've provided code for a dataframe called `to.plot` with seven columns. Your goal is to display as many of these columns as you can in a plot (although cramming in dimensions for the heck of it isn't typically a good idea in real life...).
+#' 
+## ------------------------------------------------------------------------
+to.plot <- listings %>%
+  mutate(price_bin = cut(price, breaks=quantile(price))) %>%
+  group_by(neighbourhood_cleansed, cancellation_policy, price_bin, room_type) %>%
+  summarise(num_listings = n(),
+            mean_value_rating = mean(review_scores_value, na.rm=TRUE),
+            mean_location_rating = mean(review_scores_location, na.rm=TRUE)) %>%
+  filter(num_listings > 10)
+
+#' 
+#' 
+#' *ANSWER:*
+## ----exercise-2-1--------------------------------------------------------
+ggplot(to.plot, aes(mean_value_rating, mean_location_rating,
+                    size = num_listings,
+                    label = neighbourhood_cleansed,
+                    color = price_bin)) +
+  geom_point(alpha = 0.4) +
+  geom_text(alpha = 0.3) +
+  facet_grid(room_type ~ cancellation_policy, scales = 'free') +
+  theme_bw()
+
+#' 
 #' 
 #' **Exercise 2. `geom_tile`**  A useful geometry for displaying heatmaps in `ggplot` is `geom_tile`.  This is typically used when we have data grouped by two different variables, and so we need visualize in 2d.  For example, try using `geom_tile` to visualize median price grouped by # bedrooms and bathrooms.
 #' 
@@ -469,6 +447,7 @@ listings %>%
 #' 
 #' This looks completely acceptable, and is a compact way of representing the information.  However, if we are treating "quarterly earnings" as the observed value, then this format doesn't really follow the tidy philosophy: notice that there are multiple prices (observations) on a row, and there seems to redundancy in the column headers...
 #' 
+#' 
 #' In the tidyverse, we'd rather have the table represent "quarterly earnings," with each row giving a single observation of a single quarter for a single company, and columns representing the company, quarter, and earning.  Something like this:
 #' 
 #' |Company  | Quarter |  Earnings  |
@@ -478,7 +457,10 @@ listings %>%
 #' |ABC      |Qtr.3    |$1788.23    |
 #' |...      |...      |...         |
 #' 
-#' This is also called the **wide** vs. the **long** format, and we will soon see why it is such a crucial point.
+#' This is also called the **wide** vs. the **long** format. To see why this is important in the Tidyverse: suppose we wanted to compare each company's earnings across each quarter in a bar plot.
+#' 
+#' How would we do that in the first case? It'd be an ugly and manual process. In the second case, it's simply: `ggplot(quarterly_earnings, aes(Quarter, Earnings, fill = Company)) + geom_bar(position = 'dodge')`
+#' 
 #' 
 #' ## Changing data between wide and long
 #' 
@@ -506,7 +488,7 @@ long.price %>% head()  # take a peek
 #' 
 #' 
 #' **Quick exercise:** What's the gather command for the quarterly earnings table above?
-#' **Answer:** `gather(Quarter, Earnings, Qtr.1, Qtr.2, Qtr.3, Qtr.4)`
+#' *Answer:* `gather(Quarter, Earnings, Qtr.1, Qtr.2, Qtr.3, Qtr.4)`
 #' 
 #' 
 #' To spread it back out into the original wide format, we can use `spread`. We tell spread the "key" and "value" columns, and it turns long data into wide data.
@@ -623,8 +605,20 @@ rooms.prices %>%
 #' 
 #' In the next sessions, we will need data from the `listings.csv` file and the other datasets `calendar.csv` and `reviews.csv`, so we will use these joins again.
 #' 
-#' ## Exercises
+#' # `tidyr` Exercises
 #' 
+#' Make a bar chart showing the mean review score for each neighborhood and for each type of review: `review_scores_cleanliness`, `review_scores_location`, `review_scores_value`.
+#' 
+#' *ANSWER:*
+## ------------------------------------------------------------------------
+listings %>%
+  gather(rating_type, rating, review_scores_cleanliness, review_scores_location, review_scores_value) %>%
+  group_by(neighbourhood_cleansed, rating_type) %>%
+  summarise(mean_rating = mean(rating, na.rm=TRUE)) %>%
+  ggplot(aes(neighbourhood_cleansed, mean_rating, fill=rating_type)) +
+  geom_bar(stat='identity', position='dodge') +
+  theme(axis.text.x=element_text(angle=60, hjust=1))
+
 #' 
 #' # Bonus: Visualizing Map Data
 #' 
@@ -655,18 +649,12 @@ listing_geos <- listings %>%
 #' 
 #' Note: the `crs` argument sets the coordinate system of our new spatial dataframe. Since we're going to join it with `shp`, we want their coordinate systems to be the same.
 #' 
-#' Let's join these two and aggregate the dataframes.
-#' 
-#' A couple notes:
-#'  - The `join` argument tells `st_join` how to match shapes. In this case, we join a shape from `shp` with a point in `listing_geos` if the shape contains the point.
-#'  - Setting the `do_union` argument to false in `summarise` speeds up the operation a bit, telling `summarise` that each group only has a single geometry.
+#' Let's join these two and aggregate the dataframes. The `join` argument tells `st_join` how to match shapes. In this case, we join a shape from `shp` with a point in `listing_geos` if the shape contains the point.
 #' 
 ## ------------------------------------------------------------------------
 by.zip <- st_join(shp, listing_geos, join = st_contains) %>%
   group_by(ZIP5) %>%
-  summarise(price = mean(price, na.rm = TRUE),
-            listings = n(),
-            do_union = FALSE)
+  summarise(price = mean(price, na.rm = TRUE))
 
 #' 
 #' Finally, we plot the map with leaflet:
@@ -680,13 +668,14 @@ leaflet(by.zip) %>%
 
 #' 
 #' Breaking this down:
+#' 
 #' - `leaflet(by.zip)` creates a leaflet map object and tells it to refer to `by.zip` for data.
 #' - `addProviderTiles` draws the map tiles.
 #' - `addPolygons` draws the shapes, with some "aesthetics" just like ggplot: weight, fillColor, and popup. The main difference is that we specify them as formulas (denoted by the `~` character) instead of just variable names.
 #' 
 #' # Wrapping Up
 #' 
-#' In this session, we introduced some basics of data wrangling and visualization in R.  Specifically, we showed some basic operations using out-of-the-box R commands, introduced the powerful framework of the "Tidyverse," its accompanying visualization suite `ggplot`, discussed some of the elegant data philosophy behind these libraries, briefly covered some more involved operations like gather/spread and dataset joins, and hinted at deeper applications such as predictive analytics and time series analysis that we will cover in the next two sessions.
+#' In this session, we introduced some basics of data wrangling and visualization in R.  Specifically, we introduced the powerful framework of the "Tidyverse," its accompanying visualization suite `ggplot`, discussed some of the elegant data philosophy behind these libraries, briefly covered some more involved operations like gather/spread and dataset joins, and hinted at deeper applications such as predictive analytics and time series analysis that we will cover in the next two sessions.
 #' 
 #' ## Further reading
 #' 

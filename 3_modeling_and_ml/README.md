@@ -1,6 +1,13 @@
 # Overview
 
-This session is on modeling and machine learning in R.  In the first part, we will build some predictive models using the Airbnb data set, including Linear Regression, LASSO, and CART models.  In the second half, we will go over Natural Language Processing and Clustering.  
+This session is on modeling and machine learning in R.  We will cover all steps of the  machine learning pipeline in R, which includes:
+
+1. Data Wrangling
+2. Basic Missing Data Imputation
+3. Model Fitting and Tuning
+4. Model Evaluation and Visualization
+
+In the first part, we will build some predictive models using the Airbnb data set, including Linear Regression, LASSO, Logistic Regression, and CART models.  In the second part, we will go over techniques for Natural Language Processing and Unsupervised Learning using Bag-of-Words and k-means clustering.  
 
 # Before the Session
 

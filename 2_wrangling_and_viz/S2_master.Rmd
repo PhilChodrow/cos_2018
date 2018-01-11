@@ -58,8 +58,10 @@ which is much, much nicer.  Notice that the chaining operator feeds in the objec
 You might notice that these prices are actually strings. If we want to work with these as numbers, we'll need to convert them. Let's try using `mutate`, which allows us to create new columns -- often by referring to existing ones.
 
 ```{r}
+clean_price <- function(price) as.numeric(gsub('\\$|,', '', price))
+
 raw_listings %>%
-  mutate(nprice = as.numeric(gsub('\\$|,', '', price))) %>%
+  mutate(nprice = clean_price(price)) %>%
   select(name, price, nprice)
 ```
 
@@ -67,7 +69,7 @@ We can also `arrange` this info (sort it) to see the lowest- or highest-priced l
 
 ```{r}
 raw_listings %>%
-  mutate(nprice = as.numeric(gsub('\\$|,', '', price))) %>%
+  mutate(nprice = clean_price(price)) %>%
   select(name, price, nprice) %>%
   arrange(price)
 ```
@@ -92,7 +94,6 @@ Finally, let's combine some of these to make a clean dataset to work with. We wa
 
 
 ```{r}
-clean_price <- function(price) as.numeric(gsub('\\$|,', '', price))
 
 listings <- raw_listings %>%
   filter(!is.na(bedrooms), !is.na(bathrooms)) %>%
@@ -106,7 +107,7 @@ listings <- raw_listings %>%
 Now, how about a summary statistic, like the average price for a listing? Let's take our clean dataset and `summarize` it to find out.
 
 ```{r}
-listings %>% summarise(price = mean(price))
+listings %>% summarise(avg.price = mean(price))
 ```
 
 Now --- what if we want to look at mean price by neighborhood? We can do that with `group_by`:
@@ -176,7 +177,11 @@ The result should look something like this (there may be some NaNs for groups wi
 
 Feel free to use the internet for help!
 
-Hint: `cut(x, breaks = quantile(x))` takes a numeric vector `x`, and returns a vector of labels indicating which quartile each element of `x` falls into.
+Hints:
+
+- `cut(x, breaks = quantile(x))` takes a numeric vector `x`, and returns a vector of labels indicating which quartile each element of `x` falls into.
+- `group_by` can actually take any number of columns as arguments -- it groups by all of them.
+- `mean(x, na.rm=TRUE)` takes the mean of `x`, ignoring any cases where `x` is missing.
 
 *ANSWER:*
 ```{r exercise-1-1}
@@ -248,21 +253,10 @@ by.bedroom.rating %>%
   geom_smooth(method = lm)
 ```
 
-**Theming:** We can change the plot's appearance simply by tacking themes onto the end of the ggplot. As a simple example:
-
-
-```{r}
-by.bedroom.rating %>%
-  ggplot(aes(x=review_scores_rating, y=med.price, color=factor(bedrooms))) +
-  geom_point() +
-  theme_bw() +
-  labs(x='Score', y='Median Price', title='Listing Price by Review Score')
-```
-
 
 ## Other geometries
 
-### Box Plots
+### Bar Plots
 
 We will now quickly run through a few of the other geometry options available, but truly, we don't need to spend a lot of time here since each follows the same grammar as before --- the beauty of ggplot! Note that geoms are stackable -- we can just keep adding them on top of each other.
 
@@ -361,6 +355,19 @@ listings %>%
   labs(x='Price', y='Frac. of Listings') +
   facet_wrap(~accommodates)
 ```
+
+## Theming
+
+We can change the plot's appearance simply by tacking themes onto the end of the ggplot. As a simple example:
+
+```{r}
+by.bedroom.rating %>%
+  ggplot(aes(x=review_scores_rating, y=med.price, color=factor(bedrooms))) +
+  geom_point() +
+  theme_bw() +
+  labs(x='Score', y='Median Price', title='Listing Price by Review Score')
+```
+
 
 ### Saving a plot
 

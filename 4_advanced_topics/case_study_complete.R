@@ -1,20 +1,19 @@
 # -------------------------------------------------------------------------
 # CASE STUDY: Advanced Topics in Data Science
 # By Phil Chodrow
-# January 19th, 2017
+# January 17th, 2018
 # -------------------------------------------------------------------------
 
 # This is the script for following along with our case-study analysis of trends 
 # in per-person rental prices. Following along with the case study is highly 
 # recommended. 
 
-
 # Load libraries ----------------------------------------------------------
 
 library(tidyverse) # includes dplyr, tidyr, ggplot2, purrr
 library(broom)     # for retrieving model predictions
 library(lubridate) # for manipulating dates and times
-library(ggmap)
+library(leaflet)
 
 # Load data ---------------------------------------------------------------
 # You may need to manually set your working directory before running the 
@@ -27,9 +26,11 @@ source('load_data.R')
 # (prices and listings)  in the terminal. By now these should look pretty 
 # familiar. 
 
+
 # Preliminary Exploration -------------------------------------------------
 
-# EXERCISE: Time to take a look at the data we have what we have. 
+
+# REVIEW EXERCISE: Time to take a look to see what we have. 
 # Working with your partner, construct a visualization of the first 2000 rows of
 # the prices data frame using ggplot2. 
 # 	- The date should be on the x-axis
@@ -41,32 +42,30 @@ source('load_data.R')
 # 	- You can use the head(nrows) function to extract a data frame with just the
 # 	  first nrows of data. 
 
-prices %>% 
+prices %>%
 	head(2000) %>% 
 	ggplot() + 
 	aes(x = date, 
 		y = price_per, 
 		group = listing_id) +
 	geom_line() + 
-	facet_wrap(~listing_id, 
-			   ncol = 1, 
-			   scales = 'free_y') +
-	theme(strip.text.x = element_blank())
+	facet_wrap(~listing_id) # or aes(color = listing_id)
 
-# EXERCISE: It might be easier to get a big-picture view by plotting the average
+
+# REVIEW EXERCISE: It might be easier to get a big-picture view by plotting the average
 # over time. Working with the person next to you, construct a visualization of 
 # the mean over time. 
 # 	- Use group_by(date) %>% summarise() to create a data frame holding the mean
 # 	- You probably want geom_line() again
 
-mean_plot <- prices %>% 
+prices %>% 
 	group_by(date) %>% 
 	summarise(mean_pp = mean(price_per, na.rm = T)) %>% 
-	ggplot() + 
-	aes(x = date, y = mean_pp) +
-	geom_line() 
-mean_plot 
+	ggplot() +
+	aes(x = date, y = mean_pp) + 
+	geom_line()
 
+# Three interesting things are happening here...
 
 # Modeling ----------------------------------------------------------------
 
@@ -141,7 +140,7 @@ prices_modeled %>%
 # there are packages that can do this in a systematic way, we don't actually
 # need to use them, because we know the period of the signal -- the 7-day week. 
 # Our strategy is simple: we'll compute the average residual associated with 
-# each weekday. This is easy with a little help lubridate: 
+# each weekday. This is easy with a little help from the lubridate package: 
 
 prices_modeled <- prices_modeled %>% 
 	mutate(weekday = wday(date, label = TRUE)) %>% # compute the weekday
@@ -155,8 +154,15 @@ prices_modeled <- prices_modeled %>%
 prices_modeled <- prices_modeled %>% 
 	mutate(remainder = price_per - trend - periodic)
 
-# It's a good exercise in using tidyr::gather to plot all four of these columns
-# in the same visualization: 
+
+# EXERCISE: Working with your partner, plot all four columns (price_per, trend, periodic, and remainder) as facets on the same visualization. Start by figuring out what the following code does: 
+
+prices_modeled %>% 
+	head(1500) %>% 
+	select(-.se.fit, -.resid, -weekday) %>% 
+	tidyr::gather(metric, value, -listing_id, -date) 
+
+# Now build from there
 
 prices_modeled %>% 
 	head(1500) %>% 
@@ -190,13 +196,12 @@ prices_modeled %>%
 # We haven't done a perfect modeling job, but we have made considerable progress
 # toward isolating the signal in April. 
 
-
-# Back to K-Means ---------------------------------------------------------
+# Now to K-Means ---------------------------------------------------------
 
 # Our motivating problem is: while the signal is apparent on average, not every 
 # individual raises their prices in April. How can we identify individual 
 # listings who did? There are plenty of ways to approach this, but we are going 
-# to practice our modeling skills by returning to k-means. 
+# to practice our tidy modeling skills by returning to k-means. 
 
 # Our first step is to prepare the data. Since we know the phenomenon we are
 # interested in is in April, we'll focus only on the data in that month. We'll
@@ -215,7 +220,7 @@ april_prices <- april_prices %>%
 	filter(sum(is.na(remainder)) == 0) %>% 
 	ungroup()
 
-# EXERCISE: As you may remember, R's implementation of k-means requires that 
+# EXERCISE: As you may know, R's implementation of k-means requires that 
 # the data be stored as a matrix. Use tidyr::spread to convert april_prices into 
 # "wide" format, where the rows correspond to individual listings and there's a 
 # separate column for each date. Then, remove the listing_id column with 
@@ -289,22 +294,33 @@ prices_clustered %>%
 # specific week in April; users in the other don't. Now we're ready to visualize
 # where these listings are located
 
-listings_to_plot <- prices_clustered %>% 
-	filter(cluster == 1) %>% 
-	select(listing_id) %>% 
-	unique()
+cluster_lookup <- prices_clustered %>% 
+	filter(!duplicated(listing_id)) %>% 
+	select(listing_id, cluster)
 
 locations_to_plot <- listings %>% 
-	filter(id %in% listings_to_plot$listing_id)
+	left_join(cluster_lookup, by = c('id' = 'listing_id')) %>% 
+	filter(!is.na(cluster))
+	
 
-# Let's pull down a map...
+# Now we'll plot using leaflet
+library(leaflet)
 
-m <- get_map('Copley Square', zoom = 14)
+pal <- colorFactor(c("navy", "orange"), domain = c("1", "2"))
 
-# ...and plot the results
-
-ggmap(m) + 
-	geom_point(aes(x = longitude, 
-				   y = latitude), data = locations_to_plot)
-
+leaflet(data = locations_to_plot)%>% 
+	addProviderTiles(providers$CartoDB.Positron) %>% 
+	addCircles(~longitude, ~latitude, radius = 50, color = ~pal(cluster))
+	
 # Does this map support or testify against our hypothesis?
+
+# EXERCISE: Working with your partner, outline an analysis by which you would further explore the hypothesis that the April spike is driven by the Boston Marathon. Do you have the data you need in this restricted data set? Would it help to use the full one? 
+
+listings_full <- read_csv('../data_science_intro/data/listings.csv')
+reviews_full <- read_csv('../data_science_intro/data/reviews.csv')
+calendar_full <- read_csv('../data_science_intro/data/calendar.csv')
+ 
+# If you have the data that you need, spend 30 minutes attempting your analysis. If you don't, spend 10 minutes describing how you would go about collecting the necessary data, and 20 minutes trying something out with the data you have. 
+
+
+

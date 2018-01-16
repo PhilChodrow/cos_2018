@@ -1,207 +1,66 @@
 ---
 title: "Advanced Topics in Data Science"
-subtitle: "Computing in Optimization and Statistics, 2017"
+subtitle: "Computing in Optimization and Statistics 2018"
 author: "Phil Chodrow"
-date: "January 19th, 2017"
+date: "January 18th, 2018"
 output: 
   ioslides_presentation:
   highlight: tango
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(cache = FALSE)
+knitr::opts_chunk$set(cache = FALSE, warning = FALSE)
 library(knitr)
 ```
 
 # Hello
 
-## Announcement: We Are Moving
-
-- Session 5, 1/24: **E62-223**
-- Session 6, 1/26: **E51-325**
-- Session 7, 1/31: **E62-223**
-- Session 8, 2/2:  **E51-325**
-
 # Advanced Topics in Data Science
 
-## Session Titles
+## Draft Session Titles {.build}
 
 ### "Don't Write For Loops"
 
-### "Be Lazy"
-
 ### "Stupid Data Frame Tricks"
 
-### **"Advanced Topics in Data Science"**
+### "Stupid Data Frame **Methods**"
 
+### ***"Advanced Topics in Data Science"***
 
-<!-- ## Exercise -->
+## My Favorite Picture
 
-<!-- Fire up RStudio, load the `tidyverse` package, and read in our main data set for the day.  -->
+## My Favorite Picture
 
-<!-- ```{r} -->
-<!-- library(tidyverse) -->
-<!-- prices <- read_csv('data/price_calendar.csv') # tidy version of read.csv() -->
-<!-- prices %>% head(5) -->
-<!-- ``` -->
-
-<!-- ## Exercise -->
-<!-- Pair up with the person next to you and answer the following questions about the `prices` table:  -->
-
-<!-- 1. How many **rows of data** are missing in the `price_per` column?  -->
-<!-- 2. How many **listing_ids** have complete data in the time period?  -->
-
-<!-- Lots of approaches. Some useful functions: `is.na`, `group_by`, `summarise`, `nrow()`, `unique()`, `n_distinct()`.  -->
-
-<!-- # In English, what did you calculate?  -->
-
-
-<!-- ## Sample answers {.build .smaller} -->
-
-<!-- Compute the number of rows with NA values in the `price_per` column:  -->
-<!-- ```{r} -->
-<!-- n_missing_1 <- prices$price_per %>% is.na() %>% sum() -->
-<!-- ``` -->
-
-<!-- Compute the number of listings with no NA values in any of their rows.  -->
-<!-- ```{r} -->
-<!-- complete_listings_1 <- prices %>%  -->
-<!-- 	group_by(listing_id) %>%  -->
-<!-- 	summarise(num_na = sum(is.na(price_per))) %>% -->
-<!-- 	filter(num_na == 0) %>%  -->
-<!-- 	nrow() -->
-<!-- ``` -->
-
-
-<!-- These solutions capture data that's **explicitly** listed as `NA` in the `prices` tibble.  -->
-<!-- But what about data that wasn't collected, or that someone forgot to enter...? It's **implicitly** missing.  -->
-
-<!-- # Types of Missing Data -->
-
-<!-- ## Complete Data -->
-
-<!-- ```{r, fig.margin = T, echo = FALSE} -->
-<!-- data.frame(group_1 = c('1', '1', '2', '2'),  -->
-<!-- 		   group_2 = c('a', 'b', 'a', 'b'),  -->
-<!-- 		   value = c(5.4, 4.7, 9.0, 8.1)) %>%  -->
-<!-- 	kable() -->
-<!-- ``` -->
-
-<!-- ## Explicitly Missing Data -->
-<!-- ```{r, echo = FALSE} -->
-<!-- data.frame(group_1 = c('1', '1', '2', '2'),  -->
-<!-- 		   group_2 = c('a', 'b', 'a', 'b'),  -->
-<!-- 		   value = c(5.4, 4.7, 9.0, NA)) %>%  -->
-<!-- 	kable() -->
-<!-- ``` -->
-
-<!-- ## Implicitly Missing Data -->
-
-<!-- ```{r, echo = FALSE} -->
-<!-- data.frame(group_1 = c('1', '1', '2'),  -->
-<!-- 		   group_2 = c('a', 'b', 'a'),  -->
-<!-- 		   value = c(5.4, 4.7, 9.0)) %>%  -->
-<!-- 	kable() -->
-<!-- ``` -->
-
-<!-- ## How much of our data is **implicitly missing?** -->
-<!-- ```{r} -->
-<!-- n_listings <- n_distinct(prices$listing_id)  -->
-<!-- n_dates    <- n_distinct(prices$date) -->
-
-<!-- n_listings * n_dates  - nrow(prices) -->
-<!-- ``` -->
-
-<!-- ## Making Implicitly Missing Data Explicit -->
-
-<!-- ```{r, eval = FALSE} -->
-<!-- implicitly_missing %>%  -->
-<!-- 	tidyr::complete(group_1, group_2) %>%  -->
-<!-- 	kable() -->
-<!-- ``` -->
-
-<!-- ```{r, echo = FALSE}  -->
-<!-- data.frame(group_1 = c('1', '1', '2'),  -->
-<!-- 		   group_2 = c('a', 'b', 'a'),  -->
-<!-- 		   value = c(5.4, 4.7, 9.0)) %>%  -->
-<!-- 	tidyr::complete(group_1, group_2) %>% -->
-<!-- 	kable() -->
-<!-- ``` -->
-
-<!-- ## With our data -->
-
-<!-- ```{r} -->
-<!-- ### <b> -->
-<!-- prices <- prices %>% complete(listing_id, date) -->
-<!-- ###</b> -->
-<!-- n_listings <- n_distinct(prices$listing_id)  -->
-<!-- n_dates    <- n_distinct(prices$date) -->
-
-<!-- n_listings * n_dates  - nrow(prices) -->
-<!-- ``` -->
-
-<!-- Now the previous solutions will quantify both implicit and explicitly missing data.  -->
-
-<!-- ## Revisiting our solutions {.smaller} -->
-
-
-<!-- Compute the number of rows with NA values in the `price_per` column:  -->
-<!-- ```{r} -->
-<!-- n_missing_2 <- prices$price_per %>% is.na() %>% sum() -->
-<!-- n_missing_1 - n_missing_2 -->
-<!-- ``` -->
-
-<!-- Compute the number of listings with no NA values in any of their rows.  -->
-<!-- ```{r} -->
-<!-- complete_listings_2 <- prices %>%  -->
-<!-- 	group_by(listing_id) %>%  -->
-<!-- 	summarise(num_na = sum(is.na(price_per))) %>% -->
-<!-- 	filter(num_na == 0) %>%  -->
-<!-- 	nrow() -->
-
-<!-- complete_listings_2 - complete_listings_1 -->
-<!-- ``` -->
-
-
-<!-- ## Moral -->
-
-<!-- - Your data may not be as complete as you think it is.  -->
-<!-- - Being **explicit** about your data limitations allows you to design analysis and communicate honestly about your findings.  -->
-<!-- - `R` includes simple tools like `tidyr::complete()` that allow you to **easily perform complex, practical data science tasks.**  -->
-
-<!-- ## Now that we've been careful... -->
-
-<!-- ... we can exlude NA entries.  -->
-
-<!-- ```{r} -->
-<!-- prices <- prices %>% na.omit() -->
-<!-- ``` -->
-
-## Gameplan {.build}
-
-<div class="columns-2">
-
-- **Synthesize** techniques from Sessions 2 and 3.
-- Work through an example of the **(data-)scientific method.** 
-- Learn key tools for building **complex data pipelines** from simple building blocks.
-- ***Impress Patrick Stewart:***
-
-```{r, out.height = 300, echo = FALSE}
-knitr::include_graphics('figs/not_impressed.jpg')
+```{r, out.height = 400, out.width = 500, echo = FALSE, fig.align='center'}
+knitr::include_graphics('figs/spongebob_hopeful.jpg')
 ```
 
-</div>
+## My Favorite Picture
 
-## The Data Science Pipeline {.build}
+```{r, out.height = 400, out.width=800, echo = FALSE, fig.align='center'}
+knitr::include_graphics('figs/patrickstewartwide.jpg')
+```
 
-```{r, out.height = 300, echo = FALSE}
+## My Favorite Picture
+
+```{r, out.height = 500, out.width = 800,echo = FALSE, fig.align='center'}
+knitr::include_graphics('figs/gettyimages-871679690-1510950426.jpg')
+```
+
+## My ~~Favorite~~ Third Favorite Picture 
+
+```{r, out.height = 300, echo = FALSE, fig.align='center'}
 knitr::include_graphics('https://ismayc.github.io/moderndiver-book/images/tidy1.png')
 ```
 (*Image credit: Hadley Wickham*)
 
-The **tidyverse** is a set of packages by Hadley that helps manage each stage of this pipeline. 
+## ...
 
-## What we've practiced already {.build}
+```{r, out.height = 400, out.width = 500, echo = FALSE, fig.align='center'}
+knitr::include_graphics('figs/spongebob_sad.png')
+```
+
+## What we've done together already {.build}
 
 - Import -> tidy -> transform
 - Import -> tidy -> transform -> model
@@ -212,13 +71,37 @@ But....
 knitr::include_graphics('https://ismayc.github.io/moderndiver-book/images/tidy1.png')
 ```
 
+## Gameplan {.build}
+
+<div class="columns-2">
+
+- Work through an extended example of the **(data-) scientific method.** 
+- Learn key tools for building **complex data pipelines** from simple building blocks.
+- ***Impress Patrick Stewart:***
+
+```{r, out.height = 300, echo = FALSE}
+knitr::include_graphics('figs/not_impressed.jpg')
+```
+
+</div>
+
+# Warmup
+
+## Remember this? 
+ 
+Pull if you haven't already and fire up RStudio.
+
 ## Exercise 0
 
-1. Look left
-2. Look right
-3. Pick a partner (groups of three are fine)
+1. Look left.
+2. Look right.
+3. Pick a partner (groups of three are fine).
+4. Give them a friendly, professional smile. 
+5. Maybe a handshake too. 
 
-You are going to need them soon. 
+```{r, out.height = 300, out.width = 450, echo = FALSE, fig.align='center'}
+knitr::include_graphics('figs/0602-sir-patrick-stewart.jpg')
+```
 
 # Case Study, Part 1
 
@@ -231,6 +114,35 @@ library(tidyverse)
 source('load_data.R')
 ```
 
+## A "basic" problem {.smaller}
+
+```{r, echo = FALSE}
+prices %>% 
+	group_by(date) %>% 
+	summarise(mean_pp = mean(price_per, na.rm = T)) %>% 
+	ggplot() +
+	aes(x = date, y = mean_pp) + 
+	geom_line()
+```
+
+- We'd like to investigate the listings that are driving that spike in April. 
+- First, we need to **isolate** them. 
+- Ideas? 
+
+## Basic Trend Analysis {.smaller}
+
+```{r, echo = FALSE}
+prices %>% 
+	group_by(date) %>% 
+	summarise(mean_pp = mean(price_per, na.rm = T)) %>% 
+	ggplot() +
+	aes(x = date, y = mean_pp) + 
+	geom_line()
+```
+
+- Remove the seasonal (long term) and weekly (short term) trends, leaving the April bump. 
+- Separate out individual listings using k-means. 
+
 ## What we'd like to do
 
 ```{r, out.height = 100, out.width = 700, echo = FALSE}
@@ -239,7 +151,7 @@ knitr::include_graphics('figs/journey_1.png')
 
 ## Fitting a Single Model
 
-We'd like to fit a LOESS smoother to the data to capture long-term trend. We can fit a single one like this: 
+We'd like to fit a smoother to each listing to long-term trend. We can fit a single one like this: 
 
 ```{r}
 model_data <- prices %>%       # extract a single listing's 
@@ -301,7 +213,7 @@ knitr::include_graphics('figs/picard_disappointed.jpg')
 ## A familiar loop
 
 ```{r}
-my_list <- list('Computing', 'in', 'Optimization', 'and' ,'Statistics')
+my_list <- list('To', 'boldly', 'go', 'where', 'no', 'man', 'has', 'gone', 'before')
 
 ###<b>
 length_list <- list()
@@ -318,7 +230,7 @@ length_list %>% unlist() # just for display
 ## A better way:
 
 ```{r}
-my_list <- list('Computing', 'in', 'Optimization', 'and' ,'Statistics')
+my_list <- list('To', 'boldly', 'go', 'where', 'no', 'man', 'has', 'gone', 'before')
 
 ### <b> 
 length_list <- map(my_list, nchar) # or my_list %>% map(nchar)
@@ -329,9 +241,23 @@ length_list %>% unlist() # just for display
 
 `purrr::map()` applies a function (`nchar`) to each entry of the original list. 
 
+## Map-Reduce
+
+Use `map` to apply the same operation to a list of objects. 
+Use `reduce` to combine them all together. 
+
+```{r}
+# product of the number of letters in each word
+my_list %>% 
+	map(nchar) %>% 
+	reduce(`*`) # `*` is the product function: `*`(a,b) = a*b
+```
+
 ## Exercise {.build}
 
-The directory `exercise_data` contains price data for each month. Use `map` to read it in efficiently, and `reduce(rbind)` to combine it all together. Use `list.files('exercise_data', full.names = T)` to get a list of all the files. 
+The directory `exercise_data` contains price data for each month. Use `map` + `reduce` to read it in and combine it as a single data set. You'll need `read_csv` and `rbind`. 
+
+*Hint:* start with  `list.files('exercise_data', full.names = T)` 
 
 ```{r}
 list.files('exercise_data', full.names = T) %>% 
@@ -339,6 +265,7 @@ list.files('exercise_data', full.names = T) %>%
 	reduce(rbind) %>%
 	head() # just for display
 ```
+
 
 ## Fundamental Pattern
 
@@ -460,7 +387,7 @@ prices_nested %>%
 
 ## Exercise
 
-Now do the same thing, but assign the result to a *new list column* of `prices_nested`. Don't forget what you learned in Session 2! 
+Now do the same thing, but assign the result to a *new list column* of `prices_nested`. 
  
 ```{r, eval = FALSE}
 prices_nested %>% 
@@ -471,9 +398,7 @@ prices_nested %>%
 
 ```{r, echo = FALSE}
 prices_nested %>%
-	
 	mutate(highest_price = map_dbl(data, get_biggest_price)) %>% 
-	
 	head(5)
 ```
 
@@ -605,16 +530,41 @@ Four nontrivial lines:
 knitr::include_graphics('https://ismayc.github.io/moderndiver-book/images/tidy1.png')
 ```
 
+# Break Time
+
+## Reminder: What we're up to
+
+- *Remove the seasonal (long term) and weekly (short term) trends, leaving the April bump.* 
+- **Separate out individual listings using k-means.** 
+
+```{r, out.height = 300, out.width = 400, fig.align = 'center', echo = FALSE}
+knitr::include_graphics('figs/kmeans1.png')
+```
+
 # Case Study Part 3
 
 1. Fit many models
 2. Learn from results
 3. Ask new questions
 
-## Finally...
+# Closing Out 
+
+## My ~~Favorite~~ Third Favorite Picture 
 
 ```{r, out.height = 300, echo = FALSE}
-knitr::include_graphics('http://www.reactiongifs.us/wp-content/uploads/2013/08/picard_clapping.gif')
+knitr::include_graphics('https://ismayc.github.io/moderndiver-book/images/tidy1.png')
+```
+
+## Takeaways
+
+- Data science is nonlinear -- learn to love the cycle. 
+- Modeling isn't always the final step -- sometimes it's a cleaning step for the analysis you really want to do. 
+- The `tidyverse` set of packages gives you a powerful toolbox for accomplishing complex tasks with simple code. 
+
+## Closing Thought
+
+```{r, out.height = 500, out.width = 700, fig.align = 'center', echo = FALSE}
+knitr::include_graphics('figs/have_an_awesome_day.jpg')
 ```
 
 # Reference

@@ -13,10 +13,6 @@ knitr::opts_chunk$set(cache = FALSE, warning = FALSE)
 library(knitr)
 ```
 
-# Hello
-
-# Advanced Topics in Data Science
-
 ## Draft Session Titles {.build}
 
 ### "Don't Write For Loops"
@@ -26,6 +22,18 @@ library(knitr)
 ### "Stupid Data Frame **Methods**"
 
 ### ***"Advanced Topics in Data Science"***
+
+## Uh...what's data science?
+
+An oversimplified categorization:
+
+- **Data science** produces insights
+- **Machine learning** produces predictions
+- **Artificial intelligence** produces actions
+
+(*From [David Robinson](http://varianceexplained.org/r/ds-ml-ai/)*)
+
+### So, how do we get insights? 
 
 ## My Favorite Picture
 

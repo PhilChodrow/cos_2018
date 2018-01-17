@@ -9,6 +9,7 @@ In addition to the installation instructions from the previous session, we will 
 - GraphPlot
 - LightGraphs
 - DualNumbers
+- PyPlot
 
 Install each one by running ``Pkg.add("xxx")`` where ``xxx`` is the package name
 from a Julia prompt or notebook.

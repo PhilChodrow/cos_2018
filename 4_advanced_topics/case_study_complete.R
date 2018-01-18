@@ -1,7 +1,7 @@
 # -------------------------------------------------------------------------
 # CASE STUDY: Advanced Topics in Data Science
 # By Phil Chodrow
-# January 17th, 2018
+# January 18th, 2018
 # -------------------------------------------------------------------------
 
 # This is the script for following along with our case-study analysis of trends 

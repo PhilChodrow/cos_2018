@@ -6,7 +6,9 @@ and how to implement them programmatically using TensorFlow/Keras.
 
 # Pre-Assignment
 
-First, please download the following two packages in R using the commands below:
+If you do not already have the Anaconda distribution of python, you will also have to download it. You can get the distribution at https://www.anaconda.com/download/. You will need to do this before installing the Keras package because the R version of Keras calls python functions. 
+
+Afterwards please download the following two packages in R using the commands below:
 
 ```{r}
 install.packages("devtools")

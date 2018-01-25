@@ -1,4 +1,4 @@
-# Before the Session
+# Preassignment
 If you are affiliated with Sloan or the ORC, you have access to the Engaging cluster. In order to login, you first need to request an account by emailing stshelp@mit.edu.
 
 Once your account has been created, login to engaging.
@@ -15,3 +15,5 @@ In this session, we will use julia, and we need to install a few packages. Once 
   9. `logout`
   
 For reference, the documentation for Engaging can be found at https://wikis.mit.edu/confluence/display/sloanrc/Engaging+Platform. We will discuss much of this material during the session.
+
+Please submit a screenshot of Step 7 on Stellar. If you have any questions, please contact Chris (mccord@mit.edu). 

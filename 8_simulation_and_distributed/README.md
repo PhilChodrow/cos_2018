@@ -16,4 +16,4 @@ In this session, we will use julia, and we need to install a few packages. Once 
   
 For reference, the documentation for Engaging can be found at https://wikis.mit.edu/confluence/display/sloanrc/Engaging+Platform. We will discuss much of this material during the session.
 
-Please submit a screenshot of Step 7 on Stellar. If you have any questions, please contact Chris (mccord@mit.edu). 
+Please submit a screenshot of Step 7 on Stellar under Session 8. If you have any questions, please contact Chris (mccord@mit.edu). 
